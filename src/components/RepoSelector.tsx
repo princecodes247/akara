@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Check, ChevronsUpDown, Loader2, Plus } from "lucide-react";
+import { config } from "@/lib/config";
 
 interface Repo {
   id: number;
@@ -31,7 +32,7 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
     const fetchRepos = async () => {
       try {
         const token = localStorage.getItem("akara_token");
-        const res = await fetch("http://localhost:4000/api/github/repos", {
+        const res = await fetch(`${config.apiUrl}/github/repos`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

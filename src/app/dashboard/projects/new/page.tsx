@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, X, Save } from "lucide-react";
 import { motion } from "framer-motion";
 import { RepoSelector } from "@/components/RepoSelector";
+import { config } from "@/lib/config";
 
 export default function NewProject() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function NewProject() {
 
     try {
       const token = localStorage.getItem("akara_token");
-      const res = await fetch("http://localhost:4000/api/projects", {
+      const res = await fetch(`${config.apiUrl}/projects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

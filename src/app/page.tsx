@@ -3,11 +3,12 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Zap, GitCommit, Settings } from "lucide-react";
 import Link from "next/link";
+import { config } from "@/lib/config";
 
 export default function Home() {
   const handleLogin = () => {
     // Redirect to backend OAuth route
-    window.location.href = "http://localhost:4000/api/auth/github";
+    window.location.href = `${config.apiUrl}/auth/github`;
   };
 
   return (

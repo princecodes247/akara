@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, FolderGit2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { config } from "@/lib/config";
 
 interface Project {
   _id: string;
@@ -20,7 +21,7 @@ export default function Dashboard() {
     const fetchProjects = async () => {
       try {
         const token = localStorage.getItem("akara_token");
-        const res = await fetch("http://localhost:4000/api/projects", {
+        const res = await fetch(`${config.apiUrl}/projects`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
