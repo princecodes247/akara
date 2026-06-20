@@ -51,6 +51,52 @@ export class GithubService {
       })),
     }));
   }
+
+  async checkRepoExists(githubToken: string, repoFullName: string): Promise<boolean> {
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}`, {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    return response.ok;
+  }
+
+  async createRepo(githubToken: string, username: string, repoFullName: string): Promise<void> {
+    const parts = repoFullName.split("/");
+    if (parts.length !== 2) {
+      throw new Error("Invalid repository format. Expected owner/name");
+    }
+    
+    const owner = parts[0];
+    const name = parts[1];
+    
+    // Determine if creating under personal account or an organization
+    const isOrg = owner !== username;
+    const url = isOrg 
+      ? `https://api.github.com/orgs/${owner}/repos`
+      : `https://api.github.com/user/repos`;
+      
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        private: false, // Target release repo should be public by default as per PRD
+        description: "Akara Target Release Repository",
+        auto_init: true // Initialize with README so it can be cloned/used immediately
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(`Failed to create repository on GitHub: ${err.message}`);
+    }
+  }
 }
 
 export const githubService = new GithubService();
