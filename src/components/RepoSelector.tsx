@@ -102,8 +102,8 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
       </div>
 
       {open && (
-        <div className="absolute z-50 w-full mt-2 bg-background border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto glass">
-          <div className="sticky top-0 bg-background/90 backdrop-blur p-2 border-b border-border">
+        <div className="absolute z-50 w-full mt-2 bg-background border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
+          <div className="sticky top-0 bg-background p-2 border-b border-border z-10">
             <input 
               type="text" 
               placeholder="Search repositories..."
