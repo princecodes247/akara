@@ -3,6 +3,8 @@ import { setupApp } from "./src/lib/app";
 import { projectsRouter } from "./src/modules/projects/projects.routes";
 import { authRouter } from "./src/modules/auth/auth.routes";
 
+import { githubRouter } from "./src/modules/github/github.routes";
+
 dotenv.config();
 
 const port = process.env.PORT || 4000;
@@ -10,7 +12,8 @@ const port = process.env.PORT || 4000;
 const app = setupApp({
   routes: [
     { path: "/api/projects", router: projectsRouter },
-    { path: "/api/auth", router: authRouter }
+    { path: "/api/auth", router: authRouter },
+    { path: "/api/github", router: githubRouter }
   ]
 });
 
