@@ -9,17 +9,18 @@
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 :root {
-  /* Enforce dark mode as default for premium feel */
-  --background: #050505;
-  --foreground: #f0f0f0;
-  --accent: #6b21a8; /* Deep rich purple */
-  --accent-hover: #9333ea;
-  --surface: rgba(255, 255, 255, 0.03);
-  --surface-hover: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.08);
+  /* Browserbase strict brutalist theme */
+  --background: #000000;
+  --foreground: #f4f4f5;
+  --accent: #f95b29; /* Vibrant red/orange accent */
+  --accent-hover: #e04a1b;
+  --surface: #09090b;
+  --surface-hover: #18181b;
+  --border: #27272a;
 }
 
 body {
@@ -28,26 +29,33 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(107, 33, 168, 0.1), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.08), transparent 25%);
-  background-attachment: fixed;
   min-height: 100vh;
+  /* Very subtle dot grid */
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* Glassmorphism utilities */
+/* Brutalist utilities */
 .glass {
-  background: rgba(15, 15, 15, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--background);
   border: 1px solid var(--border);
 }
 
 .glass-card {
-  background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
-  backdrop-filter: blur(20px);
+  background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: none; /* No soft shadows */
+}
+
+/* Hard shadow for interactive elements */
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px 0px var(--accent);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.brutalist-shadow:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--accent);
 }
 
 /* Scrollbar */
@@ -56,12 +64,12 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--background);
+  border-left: 1px solid var(--border);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
+  background: #3f3f46;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2);
+  background: #52525b;
 }

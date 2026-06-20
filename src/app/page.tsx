@@ -1,93 +1,83 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Zap, GitCommit, Settings } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Terminal, Network, Settings } from "lucide-react";
 import { config } from "@/lib/config";
 
 export default function Home() {
   const handleLogin = () => {
-    // Redirect to backend OAuth route
     window.location.href = `${config.apiUrl}/auth/github`;
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-accent/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Top Header / Nav */}
+      <header className="w-full border-b border-border bg-background/80 backdrop-blur-sm z-50 p-6 flex justify-between items-center">
+        <div className="font-mono text-xl font-bold tracking-tighter text-foreground">
+          AKARA<span className="text-accent">_</span>
+        </div>
+        <button 
+          onClick={handleLogin}
+          className="font-mono text-sm border border-border px-4 py-2 hover:bg-surface transition-colors"
+        >
+          [LOGIN]
+        </button>
+      </header>
 
-      <main className="z-10 flex flex-col items-center text-center max-w-3xl px-6">
+      <main className="z-10 flex flex-col flex-1 px-6 md:px-24 py-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="mb-8"
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="max-w-4xl"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-accent/30 text-accent-hover text-sm font-medium mb-6">
-            <Zap size={14} />
-            <span>Release Orchestration Redefined</span>
+          <div className="font-mono text-accent text-sm mb-6 flex items-center gap-2">
+            <Terminal size={14} />
+            <span>sys.init("release_orchestration")</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-            Control your <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-400">releases.</span>
-            <br /> Without the chaos.
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]">
+            CONTROL YOUR <br />
+            <span className="text-accent">RELEASES.</span>
           </h1>
-          <p className="text-lg md:text-xl text-foreground/70 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Akara is the control layer for GitHub releases. Sync from private to public, edit drafts, and transfer assets—all from one beautiful dashboard.
+          <p className="text-xl text-foreground/70 mb-12 max-w-2xl font-mono text-sm leading-relaxed">
+            &gt; Sync private repositories to public targets.<br/>
+            &gt; Curate changelogs before they go live.<br/>
+            &gt; Automate asset transfers via background workers.
           </p>
-        </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-md"
-        >
           <button
             onClick={handleLogin}
-            className="w-full group relative inline-flex items-center justify-center gap-3 bg-foreground text-background px-8 py-4 rounded-xl font-medium text-lg transition-all hover:scale-[1.02] active:scale-95 overflow-hidden"
+            className="group relative inline-flex items-center justify-between gap-6 bg-foreground text-background px-8 py-4 font-bold text-lg brutalist-shadow"
           >
-            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-            {/* <Github size={22} /> */}
-            Continue with GitHub
-            <ArrowRight size={18} className="opacity-70 group-hover:translate-x-1 transition-transform" />
+            <span className="font-mono uppercase tracking-wider">Initialize Session</span>
+            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>
-          <p className="text-sm text-foreground/50 mt-6">
-            We only request access to the repositories you choose.
-          </p>
         </motion.div>
 
         {/* Feature Grid */}
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-24 text-left w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-32 border-y border-border"
         >
-          <div className="glass-card p-6 rounded-2xl">
-            <GitCommit className="text-accent mb-4" size={28} />
-            <h3 className="text-lg font-semibold mb-2">Sync Repositories</h3>
-            <p className="text-foreground/60 text-sm">Automatically mirror releases from your internal private repositories to public facing ones.</p>
+          <div className="p-8 border-b md:border-b-0 md:border-r border-border hover:bg-surface transition-colors">
+            <Network className="text-accent mb-6" size={32} />
+            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Sync Repos</h3>
+            <p className="text-foreground/60 text-sm font-mono">Automated mirroring of private source releases to public facing repositories.</p>
           </div>
-          <div className="glass-card p-6 rounded-2xl">
-            <Settings className="text-blue-400 mb-4" size={28} />
-            <h3 className="text-lg font-semibold mb-2">Transform Data</h3>
-            <p className="text-foreground/60 text-sm">Strip internal notes, edit titles, and curate the changelog before it goes live to customers.</p>
+          <div className="p-8 border-b md:border-b-0 md:border-r border-border hover:bg-surface transition-colors">
+            <Settings className="text-accent mb-6" size={32} />
+            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Transform Data</h3>
+            <p className="text-foreground/60 text-sm font-mono">Strip internal notes, edit titles, and curate changelogs prior to publishing.</p>
           </div>
-          <div className="glass-card p-6 rounded-2xl">
-            <Zap className="text-yellow-400 mb-4" size={28} />
-            <h3 className="text-lg font-semibold mb-2">Asset Transfer</h3>
-            <p className="text-foreground/60 text-sm">Move compiled binaries and assets across repositories effortlessly with background jobs.</p>
+          <div className="p-8 hover:bg-surface transition-colors">
+            <Terminal className="text-accent mb-6" size={32} />
+            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Asset Transfer</h3>
+            <p className="text-foreground/60 text-sm font-mono">Seamlessly move compiled binaries and assets across repos via background jobs.</p>
           </div>
         </motion.div>
       </main>
-
-      {/* Global CSS for shimmer animation */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-      `}} />
     </div>
   );
 }
