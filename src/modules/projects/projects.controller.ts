@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { projectsService } from "./projects.service";
-import { AuthRequest } from "../../middleware/auth.middleware";
+import type { AuthRequest } from "../../middleware/auth.middleware";
 import { githubService } from "../github/github.service";
 
 export class ProjectsController {
@@ -23,15 +23,18 @@ export class ProjectsController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      let normalizedTargetRepo = targetRepo;
-      if (!normalizedTargetRepo.includes("/")) {
-        normalizedTargetRepo = `${username}/${normalizedTargetRepo}`;
-      }
+      let normalizedTargetRepo = targetRepo || null;
 
-      // Check if targetRepo exists, create if not
-      const exists = await githubService.checkRepoExists(githubToken, normalizedTargetRepo);
-      if (!exists) {
-        await githubService.createRepo(githubToken, username, normalizedTargetRepo);
+      if (normalizedTargetRepo) {
+        if (!normalizedTargetRepo.includes("/")) {
+          normalizedTargetRepo = `${username}/${normalizedTargetRepo}`;
+        }
+
+        // Check if targetRepo exists, create if not
+        const exists = await githubService.checkRepoExists(githubToken, normalizedTargetRepo);
+        if (!exists) {
+          await githubService.createRepo(githubToken, username, normalizedTargetRepo);
+        }
       }
 
       const result = await projectsService.createProject({ name, sourceRepos, targetRepo: normalizedTargetRepo });

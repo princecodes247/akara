@@ -5,15 +5,15 @@ export class ProjectsService {
     return await db.collections.projects.find();
   }
 
-  async createProject(data: { name: string; sourceRepos: string[]; targetRepo: string }) {
-    if (!data.name || !data.targetRepo) {
+  async createProject(data: { name: string; sourceRepos: string[]; targetRepo?: string | null }) {
+    if (!data.name) {
       throw new Error("Missing required fields");
     }
 
     const result = await db.collections.projects.insertOne({
       name: data.name,
       sourceRepos: data.sourceRepos || [],
-      targetRepo: data.targetRepo,
+      targetRepo: data.targetRepo || null,
     });
 
     return { id: result._id, ...data };

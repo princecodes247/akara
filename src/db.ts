@@ -8,7 +8,7 @@ dotenv.config();
 const projectSchema = createSchema("projects", {
   name: string(),
   sourceRepos: array(string()),
-  targetRepo: string(),
+  targetRepo: string().nullable(),
 });
 
 const releaseMappingSchema = createSchema("releaseMappings", {
