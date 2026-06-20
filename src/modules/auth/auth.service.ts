@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import config from "../../lib/config";
 
 interface GitHubTokenResponse {
   access_token: string;
@@ -16,12 +17,13 @@ interface GitHubUserResponse {
 }
 
 export class AuthService {
-  private clientId = process.env.GITHUB_CLIENT_ID;
-  private clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  private jwtSecret = process.env.JWT_SECRET || "fallback_secret";
+  private clientId = config.githubClientId;
+  private clientSecret = config.githubClientSecret;
+  private jwtSecret = config.jwtSecret;
 
   getGithubAuthUrl(): string {
     if (!this.clientId) {
+
       throw new Error("GitHub Client ID not configured");
     }
     return `https://github.com/login/oauth/authorize?client_id=${this.clientId}&scope=repo`;

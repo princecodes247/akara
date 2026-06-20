@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run index.ts"
+    "dev": "bun --watch index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -19,7 +19,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "monarch-orm": "^0.13.2",
-    "mongodb": "^7.3.0",
+    "mongodb": "6",
     "zod": "^4.4.3"
   }
 }
