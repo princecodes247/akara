@@ -4,6 +4,7 @@ import { projectsRouter } from "./src/modules/projects/projects.routes";
 import { authRouter } from "./src/modules/auth/auth.routes";
 
 import { githubRouter } from "./src/modules/github/github.routes";
+import { publicRouter } from "./src/modules/public/public.routes";
 
 dotenv.config();
 
@@ -13,7 +14,8 @@ const app = setupApp({
   routes: [
     { path: "/api/projects", router: projectsRouter },
     { path: "/api/auth", router: authRouter },
-    { path: "/api/github", router: githubRouter }
+    { path: "/api/github", router: githubRouter },
+    { path: "/api/public", router: publicRouter }
   ]
 });
 

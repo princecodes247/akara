@@ -7,4 +7,7 @@ export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
 
 projectsRouter.get("/", projectsController.getProjects);
+projectsRouter.get("/:id", projectsController.getProjectById);
+projectsRouter.get("/:id/releases", projectsController.getProjectReleases);
+projectsRouter.patch("/:id/releases/:releaseId/mapping", projectsController.updateReleaseMapping);
 projectsRouter.post("/", projectsController.createProject);

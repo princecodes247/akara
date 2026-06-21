@@ -1,5 +1,5 @@
-import { Response, NextFunction } from "express";
-import { AuthRequest } from "../../middleware/auth.middleware";
+import type { Response, NextFunction } from "express";
+import type { AuthRequest } from "../../middleware/auth.middleware";
 import { githubService } from "./github.service";
 
 export class GithubController {

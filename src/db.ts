@@ -1,5 +1,5 @@
 import { createSchema, defineSchemas, createDatabase } from "monarch-orm";
-import { string, array, literal, objectId } from "monarch-orm/types";
+import { string, array, literal, objectId, boolean } from "monarch-orm/types";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 
@@ -15,7 +15,8 @@ const releaseMappingSchema = createSchema("releaseMappings", {
   projectId: objectId(),
   sourceReleaseId: string(),
   targetReleaseId: string().optional(),
-  status: literal("draft", "published").default("draft"),
+  status: literal("draft", "public").default("draft"),
+  isCurrent: boolean().default(false),
 });
 
 // Define schemas

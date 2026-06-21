@@ -17,9 +17,9 @@ interface GitHubUserResponse {
 }
 
 export class AuthService {
-  private clientId = config.githubClientId;
-  private clientSecret = config.githubClientSecret;
-  private jwtSecret = config.jwtSecret;
+  private clientId = config.GITHUB_CLIENT_ID;
+  private clientSecret = config.GITHUB_CLIENT_SECRET;
+  private jwtSecret = config.JWT_SECRET;
 
   getGithubAuthUrl(): string {
     if (!this.clientId) {

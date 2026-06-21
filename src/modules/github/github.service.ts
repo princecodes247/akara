@@ -21,12 +21,18 @@ export class GithubService {
     }));
   }
 
-  async getRepoReleases(githubToken: string, repoFullName: string) {
+  async getRepoReleases(githubToken: string | undefined, repoFullName: string) {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github.v3+json",
+    };
+    
+    const token = githubToken || process.env.GITHUB_TOKEN;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases?per_page=20`, {
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: "application/vnd.github.v3+json",
-      },
+      headers,
     });
 
     if (!response.ok) {

@@ -13,6 +13,51 @@ export class ProjectsController {
     }
   }
 
+  async getProjectById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+
+      const project = await projectsService.getProjectById(id);
+      res.json(project);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async getProjectReleases(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const githubToken = req.user?.githubToken;
+
+      if (!githubToken) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const releases = await projectsService.getProjectReleases(id, githubToken);
+      res.json(releases);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async updateReleaseMapping(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id, releaseId } = req.params as { id: string; releaseId: string };
+      const { status, isCurrent } = req.body;
+
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent });
+      res.json(mapping);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async createProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { name, sourceRepos, targetRepo } = req.body;
