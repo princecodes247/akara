@@ -22,11 +22,12 @@ interface ReleaseCardProps {
 export function ReleaseCard({ release, onUpdateMapping }: ReleaseCardProps) {
   const [updating, setUpdating] = useState(false);
 
-  const handleUpdate = async (data: { status?: "draft" | "public", isCurrent?: boolean }) => {
+  const handleUpdate = async (data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) => {
     if (!onUpdateMapping) return;
     setUpdating(true);
     try {
-      await onUpdateMapping(release.id, data);
+      // Include the current release data so the backend can cache it
+      await onUpdateMapping(release.id, { ...data, releaseData: release });
     } finally {
       setUpdating(false);
     }

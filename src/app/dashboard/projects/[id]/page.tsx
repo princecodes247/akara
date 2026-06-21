@@ -43,7 +43,7 @@ export default function ProjectDetailsPage() {
     fetchProjectData();
   }, [id]);
 
-  const handleUpdateMapping = async (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean }) => {
+  const handleUpdateMapping = async (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) => {
     try {
       const token = localStorage.getItem("akara_token");
       const headers = { 
