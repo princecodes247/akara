@@ -8,22 +8,36 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   JWT_SECRET: z.string().default(""),
-  BASE_URL: z.string().optional(),
+  BASE_URL: z.url().optional(),
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),
+}).transform((env) => {
+  if (!env.BASE_URL) {
+    if (env.NODE_ENV !== 'production') {
+      env.BASE_URL = `http://localhost:${env.PORT}`;
+    }
+  } else if (!env.BASE_URL.startsWith('http://') && !env.BASE_URL.startsWith('https://')) {
+    // Force valid protocol if missing, assuming http:// for local
+    env.BASE_URL = `http://${env.BASE_URL}`;
+  }
+  return env;
+}).refine((env) => !!env.BASE_URL, {
+  message: "BASE_URL is required in production environment",
+  path: ["BASE_URL"],
 });
 
 const envVars = envSchema.safeParse(process.env);
 
 if (!envVars.success) {
-  console.error('❌ Invalid environment variables:', envVars.error);
+  console.error('❌ Invalid environment variables:', envVars.error.format());
   process.exit(1);
 }
 
-export type Config = typeof config;
-
 const config = {
-  ...envVars.data
+  ...envVars.data,
+  BASE_URL: envVars.data.BASE_URL as string, // Type assertion since it's guaranteed by refine
 };
 
-export default config
+export type Config = typeof config;
+
+export default config;

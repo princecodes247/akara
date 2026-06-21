@@ -1,6 +1,7 @@
 import { db } from "../../db";
 import { ObjectId } from "mongodb";
 import { githubService } from "../github/github.service";
+import config from "../../lib/config";
 
 export class ProjectsService {
   async getAllProjects() {
@@ -73,7 +74,7 @@ export class ProjectsService {
       // Rewrite asset URLs to proxy through our backend
       const rewrittenAssets = (r.assets || []).map((asset: any) => ({
         ...asset,
-        url: `/api/public/projects/${id}/releases/${m.sourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(r.sourceRepo || "")}`
+        url: `${config.BASE_URL}/api/public/projects/${id}/releases/${m.sourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(r.sourceRepo || "")}`
       }));
 
       return {
