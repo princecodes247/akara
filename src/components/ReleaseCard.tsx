@@ -1,4 +1,5 @@
-import { Calendar, Tag, GitBranch, Box } from "lucide-react";
+import { Calendar, Tag, GitBranch, Box, CheckCircle, Globe, Edit3, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface ReleaseCardProps {
   release: {
@@ -12,10 +13,25 @@ interface ReleaseCardProps {
     url: string;
     sourceRepo: string;
     assets: any[];
+    status?: "draft" | "public";
+    isCurrent?: boolean;
   };
+  onUpdateMapping?: (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean }) => Promise<void>;
 }
 
-export function ReleaseCard({ release }: ReleaseCardProps) {
+export function ReleaseCard({ release, onUpdateMapping }: ReleaseCardProps) {
+  const [updating, setUpdating] = useState(false);
+
+  const handleUpdate = async (data: { status?: "draft" | "public", isCurrent?: boolean }) => {
+    if (!onUpdateMapping) return;
+    setUpdating(true);
+    try {
+      await onUpdateMapping(release.id, data);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const publishedDate = release.publishedAt 
     ? new Date(release.publishedAt).toLocaleDateString("en-US", { 
         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
@@ -62,20 +78,54 @@ export function ReleaseCard({ release }: ReleaseCardProps) {
         </div>
       </div>
 
-      <div className="p-4 border-t border-border flex items-center justify-between bg-surface/30">
+      <div className="p-4 border-t border-border flex flex-col md:flex-row md:items-center justify-between bg-surface/30 gap-4">
         <div className="flex items-center gap-2 font-mono text-xs text-foreground/60 uppercase">
           <Box size={14} />
           {release.assets?.length || 0} Assets
         </div>
-        <a 
-          href={release.url} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 font-mono text-xs font-bold text-foreground hover:text-accent uppercase tracking-wider transition-colors"
-        >
-          {/* <Github size={14} /> */}
-          View on GitHub
-        </a>
+        
+        <div className="flex items-center gap-4 flex-wrap">
+          <a 
+            href={release.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 font-mono text-xs font-bold text-foreground hover:text-accent uppercase tracking-wider transition-colors mr-2"
+          >
+            View on GitHub
+          </a>
+
+          {onUpdateMapping && (
+            <div className="flex items-center gap-2 border-l border-border pl-4">
+              {updating && <Loader2 size={14} className="animate-spin text-accent" />}
+              
+              <button
+                disabled={updating}
+                onClick={() => handleUpdate({ status: release.status === "public" ? "draft" : "public" })}
+                className={`flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border transition-colors ${
+                  release.status === "public" 
+                    ? "bg-green-500/10 text-green-500 border-green-500/30 hover:bg-green-500/20" 
+                    : "bg-surface text-foreground/70 border-border hover:text-foreground"
+                }`}
+              >
+                <Globe size={14} />
+                {release.status === "public" ? "Public" : "Draft"}
+              </button>
+
+              <button
+                disabled={updating || release.isCurrent}
+                onClick={() => handleUpdate({ isCurrent: true, status: "public" })} // Auto-public when making current
+                className={`flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border transition-colors ${
+                  release.isCurrent 
+                    ? "bg-accent/10 text-accent border-accent/30 cursor-not-allowed" 
+                    : "bg-surface text-foreground/70 border-border hover:text-accent hover:border-accent/30"
+                }`}
+              >
+                <CheckCircle size={14} />
+                {release.isCurrent ? "Current" : "Set Current"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

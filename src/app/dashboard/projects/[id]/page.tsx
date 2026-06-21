@@ -43,6 +43,38 @@ export default function ProjectDetailsPage() {
     fetchProjectData();
   }, [id]);
 
+  const handleUpdateMapping = async (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean }) => {
+    try {
+      const token = localStorage.getItem("akara_token");
+      const headers = { 
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+
+      const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("Failed to update mapping");
+      
+      // Update local state without refetching to be snappy
+      setReleases(prev => prev.map(r => {
+        if (r.id === releaseId) {
+          return { ...r, ...data };
+        }
+        if (data.isCurrent && r.id !== releaseId) {
+          return { ...r, isCurrent: false }; // Ensure only one is current
+        }
+        return r;
+      }));
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-in fade-in duration-500 flex flex-col h-full items-center justify-center min-h-[60vh]">
@@ -126,7 +158,11 @@ export default function ProjectDetailsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {releases.map(release => (
-              <ReleaseCard key={`${release.sourceRepo}-${release.id}`} release={release} />
+              <ReleaseCard 
+                key={`${release.sourceRepo}-${release.id}`} 
+                release={release} 
+                onUpdateMapping={handleUpdateMapping}
+              />
             ))}
           </div>
         )}
