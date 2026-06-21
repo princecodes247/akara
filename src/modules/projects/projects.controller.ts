@@ -49,9 +49,9 @@ export class ProjectsController {
   async updateReleaseMapping(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id, releaseId } = req.params as { id: string; releaseId: string };
-      const { status, isCurrent } = req.body;
+      const { status, isCurrent, releaseData } = req.body;
 
-      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent });
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData });
       res.json(mapping);
     } catch (error) {
       next(error);

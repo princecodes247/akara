@@ -60,40 +60,23 @@ export class ProjectsService {
   async getPublicProjectData(id: string) {
     const project = await this.getProjectById(id);
 
-    // Determine the repos to query: targetRepo if it exists, otherwise sourceRepos
-    const reposToQuery = project.targetRepo ? [project.targetRepo] : (project.sourceRepos || []);
-
-    const releasesPromises = reposToQuery.map(async (repoName: string) => {
-      try {
-        const repoReleases = await githubService.getRepoReleases(undefined, repoName);
-        return repoReleases.map((r: any) => ({ ...r, sourceRepo: repoName }));
-      } catch (error) {
-        console.error(`Failed to fetch public releases for ${repoName}:`, error);
-        return [];
-      }
-    });
-
-    const results: any[] = await Promise.all(releasesPromises);
-
-    // Fetch mappings for this project
+    // Fetch mappings for this project from the database
     const mappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(id) });
-    const mappingMap = new Map(mappings.map(m => [m.sourceReleaseId, m]));
 
-    let allReleases = results.flat().map(r => {
-      const mapping = mappingMap.get(r.id.toString());
+    // Only return releases that are marked as public
+    const publicMappings = mappings.filter((m: any) => m.status === "public");
+
+    const allReleases = publicMappings.map((m: any) => {
+      // Use the snapshot of the release data stored in the database
+      const r = m.releaseData || { id: m.sourceReleaseId };
       return {
         ...r,
-        status: mapping?.status || "draft",
-        isCurrent: mapping?.isCurrent || false,
+        status: m.status,
+        isCurrent: m.isCurrent,
       };
     });
 
-    // If pulling from sourceRepos (internal-only), filter out drafts
-    if (!project.targetRepo) {
-      allReleases = allReleases.filter(r => r.status === "public");
-    }
-
-    allReleases.sort((a, b) => {
+    allReleases.sort((a: any, b: any) => {
       const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
       const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
       return dateB - dateA;
@@ -110,7 +93,7 @@ export class ProjectsService {
     };
   }
 
-  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { status?: "draft" | "public", isCurrent?: boolean }) {
+  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) {
     if (data.isCurrent) {
       // If setting to current, unset isCurrent on all other mappings for this project
       const allMappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(projectId) });
@@ -131,16 +114,19 @@ export class ProjectsService {
       const updateData: any = {};
       if (data.status !== undefined) updateData.status = data.status;
       if (data.isCurrent !== undefined) updateData.isCurrent = data.isCurrent;
+      if (data.releaseData !== undefined) updateData.releaseData = data.releaseData;
 
-      await db.collections.releaseMappings.updateOne({ _id: existing._id }, { $set: updateData });
+      await db.collections.releaseMappings.updateOne({ _id: existing._id }, updateData);
       return { ...existing, ...updateData };
     } else {
-      const insertData = {
+      const insertData: any = {
         projectId: new ObjectId(projectId),
         sourceReleaseId,
         status: data.status || "draft",
         isCurrent: data.isCurrent || false,
       };
+      if (data.releaseData !== undefined) insertData.releaseData = data.releaseData;
+
       const result = await db.collections.releaseMappings.insertOne(insertData);
       return { _id: result._id, ...insertData };
     }
