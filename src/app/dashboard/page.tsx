@@ -117,9 +117,15 @@ export default function Dashboard() {
                     
                     <div>
                       <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block mb-2">Target Repo</span>
-                      <span className="text-sm font-mono bg-accent/10 px-3 py-2 text-accent border border-accent/30 flex items-center block w-fit">
-                        {project.targetRepo}
-                      </span>
+                      {project.targetRepo ? (
+                        <span className="text-sm font-mono bg-accent/10 px-3 py-2 text-accent border border-accent/30 flex items-center block w-fit">
+                          {project.targetRepo}
+                        </span>
+                      ) : (
+                        <span className="text-sm font-mono bg-surface px-3 py-2 text-foreground/40 border border-border flex items-center block w-fit italic">
+                          None (Internal Only)
+                        </span>
+                      )}
                     </div>
                   </div>
                   

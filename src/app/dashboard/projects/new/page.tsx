@@ -172,7 +172,7 @@ export default function NewProject() {
             ) : (
               <Save size={18} />
             )}
-            {loading ? "INITIALIZING..." : "SAVE MAPPING"}
+            {loading ? "INITIALIZING..." : "SAVE PROJECT"}
           </button>
         </div>
       </form>
