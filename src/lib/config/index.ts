@@ -4,9 +4,11 @@ dotenv.config();
 
 const envSchema = z.object({
   PORT: z.string().transform(Number).default(3000),
+
   DATABASE_URL: z.string().url(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   JWT_SECRET: z.string().default(""),
+  BASE_URL: z.string().optional(),
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),
 });
@@ -20,6 +22,8 @@ if (!envVars.success) {
 
 export type Config = typeof config;
 
-const config = envVars.data;
+const config = {
+  ...envVars.data
+};
 
 export default config

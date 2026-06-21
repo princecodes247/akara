@@ -69,8 +69,16 @@ export class ProjectsService {
     const allReleases = publicMappings.map((m: any) => {
       // Use the snapshot of the release data stored in the database
       const r = m.releaseData || { id: m.sourceReleaseId };
+      
+      // Rewrite asset URLs to proxy through our backend
+      const rewrittenAssets = (r.assets || []).map((asset: any) => ({
+        ...asset,
+        url: `/api/public/projects/${id}/releases/${m.sourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(r.sourceRepo || "")}`
+      }));
+
       return {
         ...r,
+        assets: rewrittenAssets,
         status: m.status,
         isCurrent: m.isCurrent,
       };
@@ -91,6 +99,29 @@ export class ProjectsService {
       },
       releases: allReleases,
     };
+  }
+
+  async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string) {
+    // 1. Verify the release mapping exists and is public
+    const mapping = await db.collections.releaseMappings.findOne({
+      projectId: new ObjectId(projectId),
+      sourceReleaseId: releaseId,
+      status: "public"
+    });
+
+    if (!mapping) {
+      throw new Error("Asset not found or release is not public");
+    }
+
+    // 2. Get the repo name. Either from the cached release data, or fallback to query param
+    const repoFullName = (mapping.releaseData as any)?.sourceRepo || repoQueryParam;
+    
+    if (!repoFullName) {
+      throw new Error("Could not determine source repository for asset");
+    }
+
+    // 3. Get the pre-signed download URL from GitHub
+    return await githubService.getAssetDownloadUrl(repoFullName, assetId);
   }
 
   async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) {

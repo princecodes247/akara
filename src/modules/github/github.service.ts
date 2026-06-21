@@ -58,6 +58,38 @@ export class GithubService {
     }));
   }
 
+  async getAssetDownloadUrl(repoFullName: string, assetId: string): Promise<string> {
+    const headers: Record<string, string> = {
+      Accept: "application/octet-stream",
+    };
+    
+    const token = process.env.GITHUB_TOKEN;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Use redirect: "manual" to intercept the 302 Found response
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases/assets/${assetId}`, {
+      headers,
+      redirect: "manual",
+    });
+
+    if (response.status === 302) {
+      const location = response.headers.get("location");
+      if (location) {
+        return location;
+      }
+    }
+
+    // If it's 200, maybe it didn't redirect or it streamed directly? (Unlikely for GitHub assets)
+    if (response.ok && response.status === 200) {
+      // In case fetch follows the redirect anyway (some runtimes do despite 'manual'), we just return the final URL
+      return response.url;
+    }
+
+    throw new Error(`Failed to get asset download URL. Status: ${response.status} ${response.statusText}`);
+  }
+
   async checkRepoExists(githubToken: string, repoFullName: string): Promise<boolean> {
     const response = await fetch(`https://api.github.com/repos/${repoFullName}`, {
       headers: {
