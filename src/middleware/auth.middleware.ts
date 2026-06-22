@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { db } from "../db";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -10,18 +11,32 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized: Missing Bearer token" });
   }
 
   const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: Malformed Bearer token" });
+  }
+
   const jwtSecret = process.env.JWT_SECRET || "fallback_secret";
 
   try {
     const decoded = jwt.verify(token, jwtSecret) as any;
-    req.user = decoded;
+    
+    // Dynamically retrieve the user's githubToken from the database
+    const user = await db.collections.users.findOne({ githubId: String(decoded.userId) });
+    
+    req.user = {
+      userId: decoded.userId,
+      username: decoded.username,
+      avatarUrl: decoded.avatarUrl,
+      githubToken: user ? user.githubToken : "",
+    };
+    
     next();
   } catch (error) {
     return res.status(401).json({ error: "Unauthorized: Invalid token" });

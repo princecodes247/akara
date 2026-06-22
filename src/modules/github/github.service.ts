@@ -11,7 +11,7 @@ export class GithubService {
       throw new Error(`GitHub API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return data.map((repo: any) => ({
       id: repo.id,
       name: repo.name,
@@ -39,7 +39,7 @@ export class GithubService {
       throw new Error(`GitHub API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return data.map((release: any) => ({
       id: release.id,
       tag: release.tag_name,
@@ -58,12 +58,12 @@ export class GithubService {
     }));
   }
 
-  async getAssetDownloadUrl(repoFullName: string, assetId: string): Promise<string> {
+  async getAssetDownloadUrl(repoFullName: string, assetId: string, githubToken?: string): Promise<string> {
     const headers: Record<string, string> = {
       Accept: "application/octet-stream",
     };
     
-    const token = process.env.GITHUB_TOKEN;
+    const token = githubToken || process.env.GITHUB_TOKEN;
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -131,9 +131,106 @@ export class GithubService {
     });
 
     if (!response.ok) {
-      const err = await response.json();
+      const err = (await response.json()) as any;
       throw new Error(`Failed to create repository on GitHub: ${err.message}`);
     }
+  }
+
+  async getReleaseByTag(githubToken: string, repoFullName: string, tag: string) {
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases/tags/${tag}`, {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`Failed to get release by tag: ${response.statusText}`);
+
+    return await response.json();
+  }
+
+  async createRelease(githubToken: string, repoFullName: string, releaseData: any) {
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tag_name: releaseData.tag,
+        name: releaseData.title,
+        body: releaseData.body,
+        draft: releaseData.draft || false,
+        prerelease: releaseData.prerelease || false,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = (await response.json()) as any;
+      throw new Error(`Failed to create release: ${err.message}`);
+    }
+
+    return await response.json();
+  }
+
+  async deleteRelease(githubToken: string, repoFullName: string, releaseId: string | number) {
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases/${releaseId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Failed to delete release: ${response.statusText}`);
+    }
+  }
+
+  async streamAssetToGitHub(githubToken: string, targetRepo: string, releaseId: string | number, assetName: string, sourceDownloadUrl: string) {
+    // 1. Get the stream from source
+    const sourceResponse = await fetch(sourceDownloadUrl, {
+      headers: {
+        // No auth header needed here because the presigned URL is already authenticated
+      }
+    });
+
+    if (!sourceResponse.ok || !sourceResponse.body) {
+      throw new Error(`Failed to download source asset: ${sourceResponse.statusText}`);
+    }
+
+    const contentLength = sourceResponse.headers.get("content-length");
+    const contentType = sourceResponse.headers.get("content-type") || "application/octet-stream";
+
+    // 2. Stream to GitHub Upload API
+    const uploadUrl = `https://uploads.github.com/repos/${targetRepo}/releases/${releaseId}/assets?name=${encodeURIComponent(assetName)}`;
+    
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${githubToken}`,
+      Accept: "application/vnd.github.v3+json",
+      "Content-Type": contentType,
+    };
+
+    if (contentLength) {
+      headers["Content-Length"] = contentLength;
+    }
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      headers,
+      body: sourceResponse.body,
+      // @ts-ignore - duplex is required for streaming body in fetch, but TS types might not have it
+      duplex: "half", 
+    });
+
+    if (!uploadResponse.ok) {
+      const errText = await uploadResponse.text();
+      throw new Error(`Failed to upload asset to GitHub: ${errText}`);
+    }
+
+    return await uploadResponse.json();
   }
 }
 

@@ -50,8 +50,9 @@ export class ProjectsController {
     try {
       const { id, releaseId } = req.params as { id: string; releaseId: string };
       const { status, isCurrent, releaseData } = req.body;
+      const githubToken = req.user?.githubToken;
 
-      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData });
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken });
       res.json(mapping);
     } catch (error) {
       next(error);
@@ -82,7 +83,8 @@ export class ProjectsController {
         }
       }
 
-      const result = await projectsService.createProject({ name, sourceRepos, targetRepo: normalizedTargetRepo });
+      const githubId = String(req.user?.userId);
+      const result = await projectsService.createProject({ name, sourceRepos, targetRepo: normalizedTargetRepo, githubId });
       res.status(201).json(result);
     } catch (error: any) {
       if (error.message === "Missing required fields") {

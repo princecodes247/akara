@@ -5,16 +5,23 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const userSchema = createSchema("users", {
+  githubId: string(), // Using string for githubId to handle large numbers just in case
+  username: string(),
+  githubToken: string(),
+});
+
 const projectSchema = createSchema("projects", {
   name: string(),
   sourceRepos: array(string()),
   targetRepo: string().nullable(),
+  userId: objectId().optional(),
 });
 
 const releaseMappingSchema = createSchema("releaseMappings", {
   projectId: objectId(),
   sourceReleaseId: string(),
-  targetReleaseId: string().optional(),
+  targetReleaseId: string().nullable(),
   status: literal("draft", "public").default("draft"),
   isCurrent: boolean().default(false),
   releaseData: mixed().optional(),
@@ -22,6 +29,7 @@ const releaseMappingSchema = createSchema("releaseMappings", {
 
 // Define schemas
 export const schemas = defineSchemas({
+  userSchema,
   projectSchema,
   releaseMappingSchema,
 });

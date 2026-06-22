@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import config from "../../lib/config";
+import { db } from "../../db";
 
 interface GitHubTokenResponse {
   access_token: string;
@@ -63,8 +64,18 @@ export class AuthService {
       userId: userData.id,
       username: userData.login,
       avatarUrl: userData.avatar_url,
-      githubToken: accessToken,
     };
+
+    // Upsert user in database
+    await db.collections.users.updateOne(
+      { githubId: String(userData.id) },
+      { 
+        $set: { 
+          username: userData.login,
+          githubToken: accessToken 
+        } 
+      }
+    ).options({ upsert: true });
 
     return jwt.sign(payload, this.jwtSecret, { expiresIn: "7d" });
   }
