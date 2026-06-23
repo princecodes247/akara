@@ -95,9 +95,9 @@ export default function PublicReleasePage() {
                     <span className="bg-foreground text-background font-mono font-black text-xl px-3 py-1 uppercase tracking-tight">
                       {currentRelease.tag}
                     </span>
-                    {(currentRelease.draft || currentRelease.prerelease) && (
+                    {currentRelease.status === "draft" && (
                       <span className="text-xs font-mono font-bold px-2 py-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 uppercase tracking-widest">
-                        {currentRelease.draft ? "Draft" : "Pre-release"}
+                        Draft
                       </span>
                     )}
                   </div>
@@ -118,16 +118,24 @@ export default function PublicReleasePage() {
               {currentRelease.assets && currentRelease.assets.length > 0 && (
                 <div className="mb-8 border-b border-border pb-8">
                   <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground/60 block mb-4">Downloads</span>
-                  <div className="flex flex-wrap gap-4">
+                  <div className="flex flex-col md:flex-row md:flex-wrap gap-4">
                     {currentRelease.assets.map((asset: any) => (
                       <a 
                         key={asset.id} 
                         href={asset.url}
-                        className="flex items-center gap-3 border border-border bg-background hover:border-accent hover:text-accent transition-colors px-4 py-3 font-mono text-sm group"
+                        className="flex items-center justify-between gap-6 border border-border bg-background hover:border-accent hover:text-accent transition-all px-4 py-3 font-mono text-sm group"
                       >
-                        <Download size={16} className="text-foreground/50 group-hover:text-accent" />
-                        <span className="font-bold">{asset.name}</span>
-                        <span className="text-xs text-foreground/40">({asset.downloadCount} dl)</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Download size={16} className="text-foreground/50 group-hover:text-accent shrink-0" />
+                          <div className="flex flex-col items-start gap-1 min-w-0">
+                            <span className="font-bold truncate">{asset.name}</span>
+                            {asset.tag && (
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-surface text-accent/80 border border-border uppercase">
+                                {asset.tag}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </a>
                     ))}
                   </div>
@@ -162,28 +170,43 @@ export default function PublicReleasePage() {
             
             <div className="flex flex-col gap-4">
               {previousReleases.map((release) => (
-                <div key={release.id} className="flex flex-col md:flex-row justify-between md:items-center p-6 border border-border bg-surface/20 hover:border-foreground transition-colors group">
-                  <div className="flex items-center gap-4 mb-4 md:mb-0">
+                <div key={release.id} className="flex flex-col md:flex-row justify-between p-6 border border-border bg-surface/20 hover:border-foreground transition-colors group">
+                  <div className="flex items-start md:items-center gap-4 mb-4 md:mb-0">
                     <span className="font-mono font-bold text-lg w-24 shrink-0 group-hover:text-accent transition-colors">
                       {release.tag}
                     </span>
-                    <h4 className="font-bold uppercase tracking-tight text-foreground/80 line-clamp-1">
-                      {release.title || release.tag}
-                    </h4>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="font-mono text-xs text-foreground/40 uppercase whitespace-nowrap">
-                      {release.publishedAt 
-                        ? new Date(release.publishedAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
-                        : "Draft"
-                      }
-                    </span>
-                    {release.assets && release.assets.length > 0 && (
-                      <span className="font-mono text-xs font-bold border border-border px-2 py-1 text-foreground/60 uppercase">
-                        {release.assets.length} Asset{release.assets.length !== 1 && 's'}
+                    <div className="flex flex-col items-start gap-1">
+                      <h4 className="font-bold uppercase tracking-tight text-foreground/80 line-clamp-1">
+                        {release.title || release.tag}
+                      </h4>
+                      <span className="font-mono text-xs text-foreground/45 uppercase whitespace-nowrap">
+                        {release.publishedAt 
+                          ? new Date(release.publishedAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' })
+                          : "Draft"
+                        }
                       </span>
-                    )}
+                    </div>
                   </div>
+                  
+                  {release.assets && release.assets.length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {release.assets.map((asset: any) => (
+                        <a 
+                          key={asset.id} 
+                          href={asset.url}
+                          className="flex items-center gap-2 border border-border/80 bg-background hover:border-accent hover:text-accent transition-all px-3 py-1.5 font-mono text-xs"
+                        >
+                          <Download size={10} />
+                          <span className="font-bold">{asset.name}</span>
+                          {asset.tag && (
+                            <span className="text-[8px] font-bold px-1 bg-surface text-accent/80 border border-border/50 uppercase">
+                              {asset.tag}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

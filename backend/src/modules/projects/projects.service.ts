@@ -260,6 +260,30 @@ export class ProjectsService {
     }
   }
 
+  async deleteStagedRelease(projectId: string, sourceReleaseId: string) {
+    const stage = await db.collections.stagedReleases.findOne({
+      projectId: new ObjectId(projectId),
+      sourceReleaseId,
+    });
+
+    if (!stage) return;
+
+    // If it was published (public), delete the release on GitHub first
+    if (stage.status === "public" && stage.targetReleaseId) {
+      // Find the user to resolve their token
+      const project = await this.getProjectById(projectId);
+      if (project.userId && project.targetRepo) {
+        const user = await db.collections.users.findById(project.userId.toString());
+        if (user) {
+          await githubService.deleteRelease(user.githubToken, project.targetRepo, stage.targetReleaseId).catch(console.error);
+        }
+      }
+    }
+
+    // Delete the staged release record from the database
+    await db.collections.stagedReleases.deleteOne({ _id: stage._id });
+  }
+
   async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { 
     status?: "draft" | "public", 
     isCurrent?: boolean, 

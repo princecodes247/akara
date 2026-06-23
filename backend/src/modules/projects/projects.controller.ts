@@ -49,11 +49,21 @@ export class ProjectsController {
   async updateReleaseMapping(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id, releaseId } = req.params as { id: string; releaseId: string };
-      const { status, isCurrent, releaseData } = req.body;
+      const { status, isCurrent, releaseData, customTitle, customBody, customAssets } = req.body;
       const githubToken = req.user?.githubToken;
 
-      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken });
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken, customTitle, customBody, customAssets });
       res.json(mapping);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteReleaseMapping(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id, releaseId } = req.params as { id: string; releaseId: string };
+      await projectsService.deleteStagedRelease(id, releaseId);
+      res.json({ success: true });
     } catch (error) {
       next(error);
     }
