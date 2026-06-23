@@ -325,8 +325,22 @@ export default function ProjectDetailsPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="font-mono text-xs text-foreground/40 mt-1 uppercase">
-                          Target Tag: {rel.tag}
+                        <div className="font-mono text-xs text-foreground/40 mt-1 uppercase flex items-center gap-4">
+                          <span>Target Tag: {rel.tag}</span>
+                          {rel.status === "public" && (
+                            <>
+                              <span className="text-foreground/20">|</span>
+                              <a
+                                href={`/p/${id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent hover:underline flex items-center gap-1 normal-case font-bold"
+                              >
+                                <Globe size={12} />
+                                View Public Page
+                              </a>
+                            </>
+                          )}
                         </div>
                       </div>
 

@@ -36,6 +36,18 @@ export default function EditReleasePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [activeDropdownAssetId, setActiveDropdownAssetId] = useState<string | number | null>(null);
+
+  const PLATFORMS = [
+    "macOS-x64",
+    "macOS-arm64",
+    "Windows-x64",
+    "Windows-arm64",
+    "Linux-x64",
+    "Linux-arm64",
+    "Android",
+    "iOS"
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -452,7 +464,7 @@ export default function EditReleasePage() {
                                   className="w-full bg-surface border border-border px-2 py-1 font-mono text-[10px] text-foreground outline-none focus:border-accent"
                                 />
                               </div>
-                              <div>
+                              <div className="relative">
                                 <label className="block text-[8px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1">
                                   Platform / OS Tag
                                 </label>
@@ -460,9 +472,31 @@ export default function EditReleasePage() {
                                   type="text"
                                   value={asset.tag || ""}
                                   onChange={(e) => handleAssetPropChange(asset.id, "tag", e.target.value)}
+                                  onFocus={() => setActiveDropdownAssetId(asset.id)}
+                                  onBlur={() => {
+                                    // Delay to let onMouseDown handler select the option before closing
+                                    setTimeout(() => setActiveDropdownAssetId(null), 150);
+                                  }}
                                   placeholder="e.g. macOS-x64, Linux"
                                   className="w-full bg-surface border border-border px-2 py-1 font-mono text-[10px] text-foreground outline-none focus:border-accent"
                                 />
+                                {activeDropdownAssetId === asset.id && (
+                                  <div className="absolute z-50 left-0 right-0 mt-1 bg-surface border border-border py-1 shadow-xl max-h-36 overflow-y-auto font-mono text-[10px]">
+                                    {PLATFORMS.map((plat) => (
+                                      <div
+                                        key={plat}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault(); // Prevents blur event from firing too early
+                                          handleAssetPropChange(asset.id, "tag", plat);
+                                          setActiveDropdownAssetId(null);
+                                        }}
+                                        className="px-2 py-1 hover:bg-accent hover:text-background cursor-pointer transition-colors"
+                                      >
+                                        {plat}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
