@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import config from "../../lib/config";
-import { db } from "../../db";
+import { db, client } from "../../db";
 
 interface GitHubTokenResponse {
   access_token: string;
@@ -66,16 +66,25 @@ export class AuthService {
       avatarUrl: userData.avatar_url,
     };
 
-    // Upsert user in database
-    await db.collections.users.updateOne(
-      { githubId: String(userData.id) },
-      { 
-        $set: { 
-          username: userData.login,
-          githubToken: accessToken 
-        } 
-      }
-    ).options({ upsert: true });
+    // Find existing user or insert a new one (bypassing ORM upsert validation bug)
+    const existingUser = await db.collections.users.findOne({ githubId: String(userData.id) });
+    if (existingUser) {
+      await db.collections.users.updateOne(
+        { _id: existingUser._id },
+        {
+          $set: {
+            username: userData.login,
+            githubToken: accessToken
+          }
+        }
+      );
+    } else {
+      await db.collections.users.insertOne({
+        githubId: String(userData.id),
+        username: userData.login,
+        githubToken: accessToken
+      });
+    }
 
     return jwt.sign(payload, this.jwtSecret, { expiresIn: "7d" });
   }
