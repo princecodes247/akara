@@ -25,11 +25,19 @@ const releaseMappingSchema = createSchema("releaseMappings", {
   status: literal("draft", "public").default("draft"),
   isCurrent: boolean().default(false),
   releaseData: mixed().optional(),
-  
-  // Custom staging fields
-  customTitle: string().optional(),
-  customBody: string().optional(),
-  customAssets: array(mixed()).optional(),
+});
+
+const stagedReleaseSchema = createSchema("stagedReleases", {
+  projectId: objectId(),
+  sourceReleaseId: string(),
+  tag: string(),
+  title: string(),
+  body: string(),
+  assets: array(mixed()),
+  status: literal("draft", "public").default("draft"),
+  targetReleaseId: string().nullable(),
+  isCurrent: boolean().default(false),
+  releaseData: mixed().optional(),
 });
 
 // Define schemas
@@ -37,6 +45,7 @@ export const schemas = defineSchemas({
   userSchema,
   projectSchema,
   releaseMappingSchema,
+  stagedReleaseSchema,
 });
 
 // Initialize client

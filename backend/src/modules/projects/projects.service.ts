@@ -34,20 +34,20 @@ export class ProjectsService {
 
     const results: any[] = await Promise.all(releasesPromises);
 
-    // Fetch mappings for this project
-    const mappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(id) });
-    const mappingMap = new Map(mappings.map(m => [m.sourceReleaseId, m]));
+    // Fetch staged releases for this project
+    const staged = await db.collections.stagedReleases.find({ projectId: new ObjectId(id) });
+    const stagedMap = new Map(staged.map(s => [s.sourceReleaseId, s]));
 
-    // Flatten the array of arrays and merge mappings
+    // Flatten the array of arrays and merge staging data
     const allReleases = results.flat().map(r => {
-      const mapping = mappingMap.get(r.id.toString());
+      const stage = stagedMap.get(r.id.toString());
       return {
         ...r,
-        status: mapping?.status || "draft",
-        isCurrent: mapping?.isCurrent || false,
-        customTitle: mapping?.customTitle,
-        customBody: mapping?.customBody,
-        customAssets: mapping?.customAssets,
+        status: stage?.status || "draft",
+        isCurrent: stage?.isCurrent || false,
+        customTitle: stage?.title,
+        customBody: stage?.body,
+        customAssets: stage?.assets,
       };
     });
 
@@ -64,18 +64,18 @@ export class ProjectsService {
   async getPublicProjectData(id: string) {
     const project = await this.getProjectById(id);
 
-    // Fetch mappings for this project from the database
-    const mappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(id) });
+    // Fetch staged releases for this project from the database
+    const staged = await db.collections.stagedReleases.find({ projectId: new ObjectId(id) });
 
     // Only return releases that are marked as public
-    const publicMappings = mappings.filter((m: any) => m.status === "public");
+    const publicStaged = staged.filter((s: any) => s.status === "public");
 
-    const allReleases = publicMappings.map((m: any) => {
+    const allReleases = publicStaged.map((s: any) => {
       // Use the snapshot of the release data stored in the database
-      const r = m.releaseData || { id: m.sourceReleaseId };
+      const r = s.releaseData || { id: s.sourceReleaseId };
 
-      // Determine assets list: use customAssets if populated, otherwise original assets
-      const assetsList = m.customAssets && m.customAssets.length > 0 ? m.customAssets : (r.assets || []);
+      // Determine assets list: use custom assets if populated, otherwise original assets
+      const assetsList = s.assets && s.assets.length > 0 ? s.assets : (r.assets || []);
 
       // Rewrite asset URLs based on targetRepo or proxy
       const rewrittenAssets = assetsList.map((asset: any) => {
@@ -88,7 +88,7 @@ export class ProjectsService {
           };
         } else {
           const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
-          const assetSourceReleaseId = asset.sourceReleaseId || m.sourceReleaseId;
+          const assetSourceReleaseId = asset.sourceReleaseId || s.sourceReleaseId;
           return {
             id: asset.id,
             name: asset.name,
@@ -100,11 +100,11 @@ export class ProjectsService {
 
       return {
         ...r,
-        title: m.customTitle || r.title || r.name || r.tag,
-        body: m.customBody !== undefined ? m.customBody : (r.body || ""),
+        title: s.title || r.title || r.name || r.tag,
+        body: s.body !== undefined ? s.body : (r.body || ""),
         assets: rewrittenAssets,
-        status: m.status,
-        isCurrent: m.isCurrent,
+        status: s.status,
+        isCurrent: s.isCurrent,
       };
     });
 
@@ -127,25 +127,25 @@ export class ProjectsService {
 
   async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string, bypassPublicCheck = false) {
     if (!bypassPublicCheck) {
-      // 1. Verify the release mapping exists and is public
-      const mapping = await db.collections.releaseMappings.findOne({
+      // 1. Verify the staged release exists and is public
+      const stage = await db.collections.stagedReleases.findOne({
         projectId: new ObjectId(projectId),
         sourceReleaseId: releaseId,
         status: "public"
       });
 
-      if (!mapping) {
+      if (!stage) {
         throw new Error("Asset not found or release is not public");
       }
     }
 
     // 2. Get the repo name. Either from the cached release data, or fallback to query param
-    // If we bypass validation, the mapping may not exist or not be public, so we fetch it directly if present
-    const mapping = await db.collections.releaseMappings.findOne({
+    // If we bypass validation, the stage may not exist or not be public, so we fetch it directly if present
+    const stage = await db.collections.stagedReleases.findOne({
       projectId: new ObjectId(projectId),
       sourceReleaseId: releaseId,
     });
-    const repoFullName = (mapping?.releaseData as any)?.sourceRepo || repoQueryParam;
+    const repoFullName = (stage?.releaseData as any)?.sourceRepo || repoQueryParam;
 
     if (!repoFullName) {
       throw new Error("Could not determine source repository for asset");
@@ -168,14 +168,14 @@ export class ProjectsService {
       const project = await this.getProjectById(projectId);
       if (!project.targetRepo) return; // Nothing to do if no target repo
 
-      const mapping = await db.collections.releaseMappings.findOne({
+      const stage = await db.collections.stagedReleases.findOne({
         projectId: new ObjectId(projectId),
         sourceReleaseId,
       });
 
-      if (!mapping || !mapping.releaseData) return;
+      if (!stage || !stage.releaseData) return;
 
-      const releaseData = mapping.releaseData as any;
+      const releaseData = stage.releaseData as any;
       const targetRepo = project.targetRepo;
 
       // Check if release already exists on target repo
@@ -188,9 +188,9 @@ export class ProjectsService {
 
       // Build customized release payload using custom staging fields if they exist
       const promoReleaseData = {
-        tag: releaseData.tag || releaseData.tag_name,
-        title: mapping.customTitle || releaseData.title || releaseData.name || releaseData.tag,
-        body: mapping.customBody !== undefined ? mapping.customBody : (releaseData.body || ""),
+        tag: stage.tag || releaseData.tag || releaseData.tag_name,
+        title: stage.title || releaseData.title || releaseData.name || releaseData.tag,
+        body: stage.body !== undefined ? stage.body : (releaseData.body || ""),
         draft: false, // Target release is public
         prerelease: releaseData.prerelease || false,
       };
@@ -198,9 +198,9 @@ export class ProjectsService {
       // Create new release
       const newRelease = await githubService.createRelease(token, targetRepo, promoReleaseData) as any;
 
-      // Determine assets to stream: use customAssets if defined, otherwise stream all source assets
-      const assetsToUpload = mapping.customAssets && mapping.customAssets.length > 0
-        ? mapping.customAssets
+      // Determine assets to stream: use custom assets if defined, otherwise stream all source assets
+      const assetsToUpload = stage.assets && stage.assets.length > 0
+        ? stage.assets
         : (releaseData.assets || []).map((asset: any) => ({
             id: asset.id,
             name: asset.name,
@@ -225,9 +225,9 @@ export class ProjectsService {
         await githubService.streamAssetToGitHub(token, targetRepo, newRelease.id, asset.name, sourceDownloadUrl);
       }
 
-      // Update mapping with the new targetReleaseId
-      await db.collections.releaseMappings.updateOne(
-        { _id: mapping._id },
+      // Update staged release with the new targetReleaseId
+      await db.collections.stagedReleases.updateOne(
+        { _id: stage._id },
         { $set: { targetReleaseId: String(newRelease.id) } }
       );
       console.log(`Successfully promoted release ${sourceReleaseId} to ${targetRepo}`);
@@ -241,17 +241,17 @@ export class ProjectsService {
       const project = await this.getProjectById(projectId);
       if (!project.targetRepo) return;
 
-      const mapping = await db.collections.releaseMappings.findOne({
+      const stage = await db.collections.stagedReleases.findOne({
         projectId: new ObjectId(projectId),
         sourceReleaseId,
       });
 
-      if (!mapping || !mapping.targetReleaseId) return;
+      if (!stage || !stage.targetReleaseId) return;
 
-      await githubService.deleteRelease(token, project.targetRepo, mapping.targetReleaseId);
+      await githubService.deleteRelease(token, project.targetRepo, stage.targetReleaseId);
       
-      await db.collections.releaseMappings.updateOne(
-        { _id: mapping._id },
+      await db.collections.stagedReleases.updateOne(
+        { _id: stage._id },
         { $set: { targetReleaseId: null } }
       );
       console.log(`Successfully demoted release ${sourceReleaseId} from ${project.targetRepo}`);
@@ -270,11 +270,11 @@ export class ProjectsService {
     customAssets?: any[]
   }) {
     if (data.isCurrent) {
-      // If setting to current, unset isCurrent on all other mappings for this project
-      const allMappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(projectId) });
-      for (const mapping of allMappings) {
-        if (mapping.isCurrent && mapping.sourceReleaseId !== sourceReleaseId) {
-          await db.collections.releaseMappings.updateOne({ _id: mapping._id }, { $set: { isCurrent: false } });
+      // If setting to current, unset isCurrent on all other staged releases for this project
+      const allStaged = await db.collections.stagedReleases.find({ projectId: new ObjectId(projectId) });
+      for (const stage of allStaged) {
+        if (stage.isCurrent && stage.sourceReleaseId !== sourceReleaseId) {
+          await db.collections.stagedReleases.updateOne({ _id: stage._id }, { $set: { isCurrent: false } });
         }
       }
     }
@@ -291,8 +291,8 @@ export class ProjectsService {
       }
     }
 
-    // Upsert the specific mapping
-    const existing = await db.collections.releaseMappings.findOne({
+    // Upsert the specific staged release document
+    const existing = await db.collections.stagedReleases.findOne({
       projectId: new ObjectId(projectId),
       sourceReleaseId,
     });
@@ -302,11 +302,11 @@ export class ProjectsService {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.isCurrent !== undefined) updateData.isCurrent = data.isCurrent;
       if (data.releaseData !== undefined) updateData.releaseData = data.releaseData;
-      if (data.customTitle !== undefined) updateData.customTitle = data.customTitle;
-      if (data.customBody !== undefined) updateData.customBody = data.customBody;
-      if (data.customAssets !== undefined) updateData.customAssets = data.customAssets;
+      if (data.customTitle !== undefined) updateData.title = data.customTitle;
+      if (data.customBody !== undefined) updateData.body = data.customBody;
+      if (data.customAssets !== undefined) updateData.assets = data.customAssets;
 
-      await db.collections.releaseMappings.updateOne({ _id: existing._id }, { $set: updateData });
+      await db.collections.stagedReleases.updateOne({ _id: existing._id }, { $set: updateData });
       
       // Trigger background sync if status changed or is explicitly public
       if (token) {
@@ -322,18 +322,20 @@ export class ProjectsService {
       const insertData: any = {
         projectId: new ObjectId(projectId),
         sourceReleaseId,
+        tag: data.releaseData?.tag || data.releaseData?.tag_name || "",
+        title: data.customTitle || data.releaseData?.title || data.releaseData?.name || "",
+        body: data.customBody || data.releaseData?.body || "",
+        assets: data.customAssets || [],
         status: data.status || "draft",
         isCurrent: data.isCurrent || false,
+        targetReleaseId: null,
       };
 
       if (data.releaseData) {
         insertData.releaseData = data.releaseData;
       }
-      if (data.customTitle !== undefined) insertData.customTitle = data.customTitle;
-      if (data.customBody !== undefined) insertData.customBody = data.customBody;
-      if (data.customAssets !== undefined) insertData.customAssets = data.customAssets;
 
-      const result = await db.collections.releaseMappings.insertOne(insertData);
+      const result = await db.collections.stagedReleases.insertOne(insertData);
       
       if (insertData.status === "public" && token) {
         this.promoteReleaseToTarget(projectId, sourceReleaseId, token).catch(console.error);
