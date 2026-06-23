@@ -1,17 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LayoutDashboard, GitBranch, Settings, LogOut } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, GitBranch, Settings, LogOut, Loader2 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("akara_token");
+    if (!token) {
+      router.push("/");
+    } else {
+      setAuthorized(true);
+    }
+  }, [router]);
 
   const navItems = [
     { name: "Projects", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
     { name: "Releases", href: "/dashboard/releases", icon: <GitBranch size={18} /> },
     { name: "Settings", href: "/dashboard/settings", icon: <Settings size={18} /> },
   ];
+
+  if (!authorized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="animate-spin text-accent mb-4" size={48} />
+        <p className="font-mono text-sm text-foreground/70 uppercase tracking-widest">Verifying Authorization...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-background">

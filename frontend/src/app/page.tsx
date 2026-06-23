@@ -3,10 +3,26 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Terminal, Network, Settings } from "lucide-react";
 import { config } from "@/lib/config";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const handleLogin = () => {
-    window.location.href = `${config.apiUrl}/auth/github`;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("akara_token");
+    if (token) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleAction = () => {
+    if (isLoggedIn) {
+      router.push("/dashboard");
+    } else {
+      window.location.href = `${config.apiUrl}/auth/github`;
+    }
   };
 
   return (
@@ -17,10 +33,10 @@ export default function Home() {
           AKARA<span className="text-accent">_</span>
         </div>
         <button 
-          onClick={handleLogin}
-          className="font-mono text-sm border border-border px-4 py-2 hover:bg-surface transition-colors"
+          onClick={handleAction}
+          className="font-mono text-sm border border-border px-4 py-2 hover:bg-surface transition-colors uppercase"
         >
-          [LOGIN]
+          {isLoggedIn ? "[Dashboard]" : "[Login]"}
         </button>
       </header>
 
@@ -46,10 +62,12 @@ export default function Home() {
           </p>
 
           <button
-            onClick={handleLogin}
+            onClick={handleAction}
             className="group relative inline-flex items-center justify-between gap-6 bg-foreground text-background px-8 py-4 font-bold text-lg brutalist-shadow"
           >
-            <span className="font-mono uppercase tracking-wider">Initialize Session</span>
+            <span className="font-mono uppercase tracking-wider">
+              {isLoggedIn ? "Go to Dashboard" : "Initialize Session"}
+            </span>
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </motion.div>
