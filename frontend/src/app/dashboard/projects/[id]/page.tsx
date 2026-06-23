@@ -161,6 +161,7 @@ export default function ProjectDetailsPage() {
               <ReleaseCard 
                 key={`${release.sourceRepo}-${release.id}`} 
                 release={release} 
+                projectId={id}
                 onUpdateMapping={handleUpdateMapping}
               />
             ))}

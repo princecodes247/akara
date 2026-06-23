@@ -1,5 +1,6 @@
 import { Calendar, Tag, GitBranch, Box, CheckCircle, Globe, Edit3, Loader2 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 interface ReleaseCardProps {
   release: {
@@ -16,10 +17,11 @@ interface ReleaseCardProps {
     status?: "draft" | "public";
     isCurrent?: boolean;
   };
+  projectId?: string;
   onUpdateMapping?: (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) => Promise<void>;
 }
 
-export function ReleaseCard({ release, onUpdateMapping }: ReleaseCardProps) {
+export function ReleaseCard({ release, projectId, onUpdateMapping }: ReleaseCardProps) {
   const [updating, setUpdating] = useState(false);
 
   const handleUpdate = async (data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) => {
@@ -124,6 +126,16 @@ export function ReleaseCard({ release, onUpdateMapping }: ReleaseCardProps) {
                 <CheckCircle size={14} />
                 {release.isCurrent ? "Current" : "Set Current"}
               </button>
+
+              {projectId && (
+                <Link
+                  href={`/dashboard/projects/${projectId}/releases/${release.id}/edit`}
+                  className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border border-border bg-surface text-foreground/70 hover:text-accent hover:border-accent/30 transition-colors"
+                >
+                  <Edit3 size={14} />
+                  Edit Staging
+                </Link>
+              )}
             </div>
           )}
         </div>

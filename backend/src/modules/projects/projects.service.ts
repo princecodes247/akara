@@ -45,6 +45,9 @@ export class ProjectsService {
         ...r,
         status: mapping?.status || "draft",
         isCurrent: mapping?.isCurrent || false,
+        customTitle: mapping?.customTitle,
+        customBody: mapping?.customBody,
+        customAssets: mapping?.customAssets,
       };
     });
 
@@ -71,23 +74,34 @@ export class ProjectsService {
       // Use the snapshot of the release data stored in the database
       const r = m.releaseData || { id: m.sourceReleaseId };
 
+      // Determine assets list: use customAssets if populated, otherwise original assets
+      const assetsList = m.customAssets && m.customAssets.length > 0 ? m.customAssets : (r.assets || []);
+
       // Rewrite asset URLs based on targetRepo or proxy
-      const rewrittenAssets = (r.assets || []).map((asset: any) => {
+      const rewrittenAssets = assetsList.map((asset: any) => {
         if (project.targetRepo) {
           return {
-            ...asset,
+            id: asset.id,
+            name: asset.name,
+            tag: asset.tag || "",
             url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`
           };
         } else {
+          const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
+          const assetSourceReleaseId = asset.sourceReleaseId || m.sourceReleaseId;
           return {
-            ...asset,
-            url: `${config.BASE_URL}/api/public/projects/${id}/releases/${m.sourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(r.sourceRepo || "")}`
+            id: asset.id,
+            name: asset.name,
+            tag: asset.tag || "",
+            url: `${config.BASE_URL}/api/public/projects/${id}/releases/${assetSourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
           };
         }
       });
 
       return {
         ...r,
+        title: m.customTitle || r.title || r.name || r.tag,
+        body: m.customBody !== undefined ? m.customBody : (r.body || ""),
         assets: rewrittenAssets,
         status: m.status,
         isCurrent: m.isCurrent,
@@ -111,20 +125,27 @@ export class ProjectsService {
     };
   }
 
-  async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string) {
-    // 1. Verify the release mapping exists and is public
-    const mapping = await db.collections.releaseMappings.findOne({
-      projectId: new ObjectId(projectId),
-      sourceReleaseId: releaseId,
-      status: "public"
-    });
+  async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string, bypassPublicCheck = false) {
+    if (!bypassPublicCheck) {
+      // 1. Verify the release mapping exists and is public
+      const mapping = await db.collections.releaseMappings.findOne({
+        projectId: new ObjectId(projectId),
+        sourceReleaseId: releaseId,
+        status: "public"
+      });
 
-    if (!mapping) {
-      throw new Error("Asset not found or release is not public");
+      if (!mapping) {
+        throw new Error("Asset not found or release is not public");
+      }
     }
 
     // 2. Get the repo name. Either from the cached release data, or fallback to query param
-    const repoFullName = (mapping.releaseData as any)?.sourceRepo || repoQueryParam;
+    // If we bypass validation, the mapping may not exist or not be public, so we fetch it directly if present
+    const mapping = await db.collections.releaseMappings.findOne({
+      projectId: new ObjectId(projectId),
+      sourceReleaseId: releaseId,
+    });
+    const repoFullName = (mapping?.releaseData as any)?.sourceRepo || repoQueryParam;
 
     if (!repoFullName) {
       throw new Error("Could not determine source repository for asset");
@@ -165,16 +186,42 @@ export class ProjectsService {
         await githubService.deleteRelease(token, targetRepo, existingRelease.id);
       }
 
-      // Create new release
-      const newRelease = await githubService.createRelease(token, targetRepo, releaseData) as any;
+      // Build customized release payload using custom staging fields if they exist
+      const promoReleaseData = {
+        tag: releaseData.tag || releaseData.tag_name,
+        title: mapping.customTitle || releaseData.title || releaseData.name || releaseData.tag,
+        body: mapping.customBody !== undefined ? mapping.customBody : (releaseData.body || ""),
+        draft: false, // Target release is public
+        prerelease: releaseData.prerelease || false,
+      };
 
-      // Upload assets
-      const assets = releaseData.assets || [];
-      for (const asset of assets) {
-        // Get the source download URL (redirecting manual URL)
-        const sourceDownloadUrl = await this.getAssetDownloadUrl(projectId, sourceReleaseId, asset.id, releaseData.sourceRepo);
+      // Create new release
+      const newRelease = await githubService.createRelease(token, targetRepo, promoReleaseData) as any;
+
+      // Determine assets to stream: use customAssets if defined, otherwise stream all source assets
+      const assetsToUpload = mapping.customAssets && mapping.customAssets.length > 0
+        ? mapping.customAssets
+        : (releaseData.assets || []).map((asset: any) => ({
+            id: asset.id,
+            name: asset.name,
+            sourceRepo: releaseData.sourceRepo,
+            sourceReleaseId: sourceReleaseId,
+          }));
+
+      for (const asset of assetsToUpload) {
+        const assetSourceRepo = asset.sourceRepo || releaseData.sourceRepo || "";
+        const assetSourceReleaseId = asset.sourceReleaseId || sourceReleaseId;
+
+        // Get the source download URL (bypass public check because we are in background sync)
+        const sourceDownloadUrl = await this.getAssetDownloadUrl(
+          projectId, 
+          assetSourceReleaseId, 
+          String(asset.id), 
+          assetSourceRepo, 
+          true
+        );
         
-        // Stream the asset directly from source to GitHub target
+        // Stream the asset directly from source to GitHub target using its custom name
         await githubService.streamAssetToGitHub(token, targetRepo, newRelease.id, asset.name, sourceDownloadUrl);
       }
 
@@ -213,7 +260,15 @@ export class ProjectsService {
     }
   }
 
-  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any, githubToken?: string }) {
+  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { 
+    status?: "draft" | "public", 
+    isCurrent?: boolean, 
+    releaseData?: any, 
+    githubToken?: string,
+    customTitle?: string,
+    customBody?: string,
+    customAssets?: any[]
+  }) {
     if (data.isCurrent) {
       // If setting to current, unset isCurrent on all other mappings for this project
       const allMappings = await db.collections.releaseMappings.find({ projectId: new ObjectId(projectId) });
@@ -247,6 +302,9 @@ export class ProjectsService {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.isCurrent !== undefined) updateData.isCurrent = data.isCurrent;
       if (data.releaseData !== undefined) updateData.releaseData = data.releaseData;
+      if (data.customTitle !== undefined) updateData.customTitle = data.customTitle;
+      if (data.customBody !== undefined) updateData.customBody = data.customBody;
+      if (data.customAssets !== undefined) updateData.customAssets = data.customAssets;
 
       await db.collections.releaseMappings.updateOne({ _id: existing._id }, { $set: updateData });
       
@@ -271,6 +329,9 @@ export class ProjectsService {
       if (data.releaseData) {
         insertData.releaseData = data.releaseData;
       }
+      if (data.customTitle !== undefined) insertData.customTitle = data.customTitle;
+      if (data.customBody !== undefined) insertData.customBody = data.customBody;
+      if (data.customAssets !== undefined) insertData.customAssets = data.customAssets;
 
       const result = await db.collections.releaseMappings.insertOne(insertData);
       
