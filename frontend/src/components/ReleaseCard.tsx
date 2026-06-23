@@ -16,7 +16,7 @@ interface ReleaseCardProps {
     status?: "draft" | "public";
     isCurrent?: boolean;
   };
-  onUpdateMapping?: (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean }) => Promise<void>;
+  onUpdateMapping?: (releaseId: number, data: { status?: "draft" | "public", isCurrent?: boolean, releaseData?: any }) => Promise<void>;
 }
 
 export function ReleaseCard({ release, onUpdateMapping }: ReleaseCardProps) {
