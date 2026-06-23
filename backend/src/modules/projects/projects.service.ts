@@ -61,6 +61,44 @@ export class ProjectsService {
     return allReleases;
   }
 
+  formatPublicRelease(project: any, s: any, projectId: string) {
+    // Use the snapshot of the release data stored in the database
+    const r = s.releaseData || { id: s.sourceReleaseId };
+
+    // Determine assets list: use custom assets if populated, otherwise original assets
+    const assetsList = s.assets && s.assets.length > 0 ? s.assets : (r.assets || []);
+
+    // Rewrite asset URLs based on targetRepo or proxy
+    const rewrittenAssets = assetsList.map((asset: any) => {
+      if (project.targetRepo) {
+        return {
+          id: asset.id,
+          name: asset.name,
+          tag: asset.tag || "",
+          url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`
+        };
+      } else {
+        const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
+        const assetSourceReleaseId = asset.sourceReleaseId || s.sourceReleaseId;
+        return {
+          id: asset.id,
+          name: asset.name,
+          tag: asset.tag || "",
+          url: `${config.BASE_URL}/api/public/projects/${projectId}/releases/${assetSourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
+        };
+      }
+    });
+
+    return {
+      ...r,
+      title: s.title || r.title || r.name || r.tag,
+      body: s.body !== undefined ? s.body : (r.body || ""),
+      assets: rewrittenAssets,
+      status: s.status,
+      isCurrent: s.isCurrent,
+    };
+  }
+
   async getPublicProjectData(id: string) {
     const project = await this.getProjectById(id);
 
@@ -70,43 +108,7 @@ export class ProjectsService {
     // Only return releases that are marked as public
     const publicStaged = staged.filter((s: any) => s.status === "public");
 
-    const allReleases = publicStaged.map((s: any) => {
-      // Use the snapshot of the release data stored in the database
-      const r = s.releaseData || { id: s.sourceReleaseId };
-
-      // Determine assets list: use custom assets if populated, otherwise original assets
-      const assetsList = s.assets && s.assets.length > 0 ? s.assets : (r.assets || []);
-
-      // Rewrite asset URLs based on targetRepo or proxy
-      const rewrittenAssets = assetsList.map((asset: any) => {
-        if (project.targetRepo) {
-          return {
-            id: asset.id,
-            name: asset.name,
-            tag: asset.tag || "",
-            url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`
-          };
-        } else {
-          const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
-          const assetSourceReleaseId = asset.sourceReleaseId || s.sourceReleaseId;
-          return {
-            id: asset.id,
-            name: asset.name,
-            tag: asset.tag || "",
-            url: `${config.BASE_URL}/api/public/projects/${id}/releases/${assetSourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
-          };
-        }
-      });
-
-      return {
-        ...r,
-        title: s.title || r.title || r.name || r.tag,
-        body: s.body !== undefined ? s.body : (r.body || ""),
-        assets: rewrittenAssets,
-        status: s.status,
-        isCurrent: s.isCurrent,
-      };
-    });
+    const allReleases = publicStaged.map((s: any) => this.formatPublicRelease(project, s, id));
 
     allReleases.sort((a: any, b: any) => {
       const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
@@ -123,6 +125,33 @@ export class ProjectsService {
       },
       releases: allReleases,
     };
+  }
+
+  async getCurrentRelease(id: string) {
+    const project = await this.getProjectById(id);
+
+    // Fetch staged releases for this project from the database
+    const staged = await db.collections.stagedReleases.find({ 
+      projectId: new ObjectId(id),
+      status: "public"
+    });
+
+    if (staged.length === 0) return null;
+
+    // Find the one marked as current
+    let current = staged.find((s: any) => s.isCurrent);
+    
+    // Fallback: if none is explicitly marked current, use the newest one by publication date
+    if (!current) {
+      staged.sort((a: any, b: any) => {
+        const dateA = a.releaseData?.publishedAt ? new Date(a.releaseData.publishedAt).getTime() : 0;
+        const dateB = b.releaseData?.publishedAt ? new Date(b.releaseData.publishedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      current = staged[0];
+    }
+
+    return this.formatPublicRelease(project, current, id);
   }
 
   async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string, bypassPublicCheck = false) {

@@ -15,6 +15,22 @@ export class PublicController {
     }
   }
 
+  async getCurrentRelease(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const current = await projectsService.getCurrentRelease(id);
+      if (!current) {
+        return res.status(404).json({ error: "No current release found for this project." });
+      }
+      res.json(current);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
   async downloadAsset(req: Request, res: Response, next: NextFunction) {
     try {
       const { id, releaseId, assetId } = req.params as { id: string; releaseId: string; assetId: string };
