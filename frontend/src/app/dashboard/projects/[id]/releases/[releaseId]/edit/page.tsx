@@ -184,7 +184,8 @@ export default function EditReleasePage() {
           customBody,
           customAssets: selectedAssets,
           status,
-          isCurrent
+          isCurrent,
+          releaseData: currentRelease
         })
       });
 
