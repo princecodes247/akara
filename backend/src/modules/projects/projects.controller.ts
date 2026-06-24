@@ -61,7 +61,16 @@ export class ProjectsController {
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken, customTitle, customBody, customAssets }, userId);
+      const sanitizeHtml = (await import("sanitize-html")).default;
+      const cleanCustomBody = customBody ? sanitizeHtml(customBody, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']),
+        allowedAttributes: {
+          ...sanitizeHtml.defaults.allowedAttributes,
+          '*': ['class', 'id', 'style'],
+        }
+      }) : customBody;
+
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken, customTitle, customBody: cleanCustomBody, customAssets }, userId);
       res.json(mapping);
     } catch (error) {
       next(error);

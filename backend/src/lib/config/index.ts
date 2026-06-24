@@ -4,10 +4,9 @@ dotenv.config();
 
 const envSchema = z.object({
   PORT: z.string().transform(Number).default(3000),
-
   DATABASE_URL: z.string().url(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  JWT_SECRET: z.string().default(""),
+  JWT_SECRET: z.string(),
   BASE_URL: z.url().optional(),
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),

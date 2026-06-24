@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
+import config from "../lib/config";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -22,25 +23,25 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     return res.status(401).json({ error: "Unauthorized: Malformed Bearer token" });
   }
 
-  const jwtSecret = process.env.JWT_SECRET || "fallback_secret";
+  const jwtSecret = config.JWT_SECRET;
 
   try {
     const decoded = jwt.verify(token, jwtSecret) as any;
-    
+
     // Dynamically retrieve the user from the database
     const user = await db.collections.users.findOne({ githubId: String(decoded.userId) });
-    
+
     if (!user) {
       return res.status(401).json({ error: "Unauthorized: User not found in database" });
     }
-    
+
     req.user = {
       userId: String(user._id),
       username: decoded.username,
       avatarUrl: decoded.avatarUrl,
       githubToken: user.githubToken || "",
     };
-    
+
     next();
   } catch (error) {
     return res.status(401).json({ error: "Unauthorized: Invalid token" });

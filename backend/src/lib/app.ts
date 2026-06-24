@@ -2,6 +2,7 @@ import express, { type Express, type Router } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 
 interface AppOptions {
   routes: { path: string; router: Router }[];
@@ -11,6 +12,17 @@ export const setupApp = (options: AppOptions): Express => {
   const app = express();
 
   app.use(helmet());
+
+  // Global rate limiting to prevent DoS and brute-force attacks
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 200, // Limit each IP to 200 requests per `window` (here, per 15 minutes).
+    standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+    message: { error: 'Too many requests from this IP, please try again after 15 minutes' },
+  });
+  app.use(limiter);
+
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
