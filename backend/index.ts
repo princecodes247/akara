@@ -12,10 +12,15 @@ const port = process.env.PORT || 4000;
 
 const app = setupApp({
   routes: [
-    { path: "/api/projects", router: projectsRouter },
-    { path: "/api/auth", router: authRouter },
-    { path: "/api/github", router: githubRouter },
-    { path: "/api/public", router: publicRouter }
+    {
+      prefix: "/api",
+      routes: [
+        { path: "/projects", router: projectsRouter },
+        { path: "/auth", router: authRouter },
+        { path: "/github", router: githubRouter },
+        { path: "/public", router: publicRouter }
+      ]
+    }
   ]
 });
 

@@ -137,7 +137,7 @@ export class ProjectsService {
     const project = await this.getProjectById(id);
 
     // Fetch staged releases for this project from the database
-    const staged = await db.collections.stagedReleases.find({ 
+    const staged = await db.collections.stagedReleases.find({
       projectId: new ObjectId(id),
       status: "public"
     });
@@ -146,7 +146,7 @@ export class ProjectsService {
 
     // Find the one marked as current
     let current = staged.find((s: any) => s.isCurrent);
-    
+
     // Fallback: if none is explicitly marked current, use the newest one by publication date
     if (!current) {
       staged.sort((a: any, b: any) => {
@@ -177,8 +177,8 @@ export class ProjectsService {
       let isAssetInStage = false;
       if (stage.assets && stage.assets.length > 0) {
         isAssetInStage = stage.assets.some((a: any) => String(a.id) === String(assetId));
-      } else if (stage.releaseData?.assets) {
-        isAssetInStage = stage.releaseData.assets.some((a: any) => String(a.id) === String(assetId));
+      } else if ((stage.releaseData as any)?.assets) {
+        isAssetInStage = (stage.releaseData as any).assets.some((a: any) => String(a.id) === String(assetId));
       }
 
       if (!isAssetInStage) {
@@ -227,7 +227,7 @@ export class ProjectsService {
 
       // Check if release already exists on target repo
       const existingRelease = await githubService.getReleaseByTag(token, targetRepo, releaseData.tag || releaseData.tag_name) as any;
-      
+
       if (existingRelease) {
         // Delete it to ensure a clean state
         await githubService.deleteRelease(token, targetRepo, existingRelease.id);
@@ -249,11 +249,11 @@ export class ProjectsService {
       const assetsToUpload = stage.assets && stage.assets.length > 0
         ? stage.assets
         : (releaseData.assets || []).map((asset: any) => ({
-            id: asset.id,
-            name: asset.name,
-            sourceRepo: releaseData.sourceRepo,
-            sourceReleaseId: sourceReleaseId,
-          }));
+          id: asset.id,
+          name: asset.name,
+          sourceRepo: releaseData.sourceRepo,
+          sourceReleaseId: sourceReleaseId,
+        }));
 
       for (const asset of assetsToUpload) {
         const assetSourceRepo = asset.sourceRepo || releaseData.sourceRepo || "";
@@ -261,13 +261,13 @@ export class ProjectsService {
 
         // Get the source download URL (bypass public check because we are in background sync)
         const sourceDownloadUrl = await this.getAssetDownloadUrl(
-          projectId, 
-          assetSourceReleaseId, 
-          String(asset.id), 
-          assetSourceRepo, 
+          projectId,
+          assetSourceReleaseId,
+          String(asset.id),
+          assetSourceRepo,
           true
         );
-        
+
         // Stream the asset directly from source to GitHub target using its custom name
         await githubService.streamAssetToGitHub(token, targetRepo, newRelease.id, asset.name, sourceDownloadUrl);
       }
@@ -296,7 +296,7 @@ export class ProjectsService {
       if (!stage || !stage.targetReleaseId) return;
 
       await githubService.deleteRelease(token, project.targetRepo, stage.targetReleaseId);
-      
+
       await db.collections.stagedReleases.updateOne(
         { _id: stage._id },
         { $set: { targetReleaseId: null } }
@@ -333,10 +333,10 @@ export class ProjectsService {
     await db.collections.stagedReleases.deleteOne({ _id: stage._id });
   }
 
-  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: { 
-    status?: "draft" | "public", 
-    isCurrent?: boolean, 
-    releaseData?: any, 
+  async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: {
+    status?: "draft" | "public",
+    isCurrent?: boolean,
+    releaseData?: any,
     githubToken?: string,
     customTitle?: string,
     customBody?: string,
@@ -382,7 +382,7 @@ export class ProjectsService {
       if (data.customAssets !== undefined) updateData.assets = data.customAssets;
 
       await db.collections.stagedReleases.updateOne({ _id: existing._id }, { $set: updateData });
-      
+
       // Trigger background sync if status changed or is explicitly public
       if (token) {
         if (data.status === "public") {
@@ -411,7 +411,7 @@ export class ProjectsService {
       }
 
       const result = await db.collections.stagedReleases.insertOne(insertData);
-      
+
       if (insertData.status === "public" && token) {
         this.promoteReleaseToTarget(projectId, sourceReleaseId, token).catch(console.error);
       }

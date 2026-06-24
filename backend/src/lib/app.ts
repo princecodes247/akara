@@ -4,8 +4,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
+type AppRoute = 
+  | { path: string; router: Router }
+  | { prefix?: string; middlewares?: express.RequestHandler[]; routes: AppRoute[] };
+
 interface AppOptions {
-  routes: { path: string; router: Router }[];
+  routes: AppRoute[];
 }
 
 export const setupApp = (options: AppOptions): Express => {
@@ -42,9 +46,22 @@ export const setupApp = (options: AppOptions): Express => {
     res.status(200).json({ status: 'ok' });
   });
 
-  options.routes.forEach((route) => {
-    app.use(route.path, route.router);
-  });
+  const mountRoutes = (target: Router | Express, routes: AppRoute[]) => {
+    routes.forEach((route) => {
+      if ("router" in route) {
+        (target as any).use(route.path, route.router);
+      } else {
+        const groupRouter = express.Router();
+        if (route.middlewares && route.middlewares.length > 0) {
+          groupRouter.use(...route.middlewares);
+        }
+        mountRoutes(groupRouter, route.routes);
+        (target as any).use(route.prefix || "/", groupRouter);
+      }
+    });
+  };
+
+  mountRoutes(app, options.routes);
 
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err);
