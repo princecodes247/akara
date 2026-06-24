@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { authService } from "./auth.service";
+import config from "../../lib/config";
 
 export class AuthController {
   getGithubAuthUrl(req: Request, res: Response, next: NextFunction) {
@@ -22,7 +23,7 @@ export class AuthController {
       }
 
       const token = await authService.handleGithubCallback(code);
-      res.redirect(`http://localhost:3000/auth/callback?token=${token}`);
+      res.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (error: any) {
       next(error);
     }
