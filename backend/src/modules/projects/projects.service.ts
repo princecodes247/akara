@@ -198,7 +198,7 @@ export class ProjectsService {
       projectId: new ObjectId(projectId),
       sourceReleaseId: releaseId,
     });
-    const repoFullName = (stage?.releaseData as any)?.sourceRepo || repoQueryParam;
+    const repoFullName = repoQueryParam || (stage?.releaseData as any)?.sourceRepo;
 
     if (!repoFullName) {
       throw new Error("Could not determine source repository for asset");
