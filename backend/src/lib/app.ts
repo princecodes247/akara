@@ -11,7 +11,17 @@ interface AppOptions {
 export const setupApp = (options: AppOptions): Express => {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "cdn.jsdelivr.net"],
+        "style-src": ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com"],
+        "font-src": ["'self'", "fonts.gstatic.com"],
+        "img-src": ["'self'", "data:", "cdn.jsdelivr.net"],
+      },
+    },
+  }));
 
   // Global rate limiting to prevent DoS and brute-force attacks
   const limiter = rateLimit({
