@@ -150,16 +150,16 @@ export default function ProjectDetailsPage() {
       <div className="grid grid-cols-1 md:grid-cols-12 border-b border-border/50 bg-surface/10">
         <Link 
           href="/dashboard"
-          className="md:col-span-3 flex items-center justify-center p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 bg-surface/30 hover:bg-surface/50 text-foreground transition-colors group"
+          className="md:col-span-3 flex items-center justify-center p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 bg-surface/30 hover:bg-surface/50 text-foreground transition-colors group"
         >
           <div className="flex items-center gap-2 font-mono font-bold uppercase tracking-wider text-sm">
             <ArrowLeft size={16} className="text-accent group-hover:-translate-x-1 transition-transform" />
             Back to Projects
           </div>
         </Link>
-        <div className="md:col-span-4 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 flex flex-col justify-center bg-surface/10">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-4xl font-black uppercase tracking-tighter truncate" title={project.name}>{project.name}</h1>
+        <div className="md:col-span-4 p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 flex flex-col justify-center bg-surface/10">
+          <div className="flex items-center justify-between gap-4 w-full overflow-hidden">
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter break-words" title={project.name}>{project.name}</h1>
             <Link
               href={`/dashboard/projects/${id}/settings`}
               className="text-foreground/40 hover:text-accent transition-colors shrink-0 p-2 hover:bg-surface/30 rounded-lg"
@@ -169,7 +169,7 @@ export default function ProjectDetailsPage() {
             </Link>
           </div>
         </div>
-        <div className="md:col-span-5 p-8 md:p-12 flex flex-col justify-center">
+        <div className="md:col-span-5 p-5 sm:p-8 md:p-12 flex flex-col justify-center">
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent shrink-0 mt-1 w-24">Sources</span>
@@ -200,8 +200,8 @@ export default function ProjectDetailsPage() {
       </div>
 
       {/* Navigation Tabs - Modern Animated Pills */}
-      <div className="px-8 pt-8 pb-4 max-w-7xl mx-auto w-full">
-        <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-fit border border-border/50">
+      <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 max-w-7xl mx-auto w-full overflow-x-auto">
+        <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-fit border border-border/50 min-w-max">
           {[
             { id: "artifacts", label: "Artifacts", count: artifacts.length, icon: Package },
             { id: "releases", label: "Releases", count: customReleases.length, icon: Rocket }
@@ -233,7 +233,7 @@ export default function ProjectDetailsPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="px-8 pb-12 flex-1 max-w-7xl mx-auto w-full">
+      <div className="px-5 sm:px-8 pb-12 flex-1 max-w-7xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {activeTab === "artifacts" ? (
             /* ARTIFACTS SCREEN */
@@ -269,7 +269,7 @@ export default function ProjectDetailsPage() {
                         className="group border border-border/50 bg-surface/20 hover:bg-surface/30 rounded-xl transition-all overflow-hidden cursor-pointer shadow-sm hover:shadow-md"
                         onClick={() => toggleArtifactExpanded(key)}
                       >
-                        <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div>
                             <div className="flex items-center gap-3">
                               <span className="font-mono font-black text-xl text-foreground tracking-tight">{art.tag}</span>
@@ -283,11 +283,11 @@ export default function ProjectDetailsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                             <Link
                               href={`/dashboard/projects/${id}/releases/${art.id}/edit`}
                               onClick={(e) => e.stopPropagation()}
-                              className="font-mono text-xs uppercase border border-border/50 hover:border-accent/50 text-foreground px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                              className="font-mono text-xs uppercase border border-border/50 hover:border-accent/50 text-foreground px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm flex-1 md:flex-none"
                             >
                               <Plus size={12} strokeWidth={2} />
                               Compose
@@ -311,7 +311,7 @@ export default function ProjectDetailsPage() {
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden"
                             >
-                              <div className="border-t border-border/30 bg-black/20 p-6">
+                              <div className="border-t border-border/30 bg-black/20 p-4 sm:p-6">
                                 <div className="font-mono text-xs font-bold text-accent uppercase tracking-wider mb-3 flex items-center gap-2">
                                   <Package size={14} /> Available Assets
                                 </div>
@@ -371,15 +371,15 @@ export default function ProjectDetailsPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-6">
                   {customReleases.map(rel => (
-                    <div key={rel.id} className="border border-border/50 bg-surface/10 rounded-2xl p-6 flex flex-col gap-6 shadow-sm relative overflow-hidden">
+                    <div key={rel.id} className="border border-border/50 bg-surface/10 rounded-2xl p-4 sm:p-6 flex flex-col gap-6 shadow-sm relative overflow-hidden">
                       {rel.isCurrent && (
                         <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl -mr-10 -mt-10 rounded-full pointer-events-none"></div>
                       )}
                       
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/30 pb-5 z-10">
                         <div>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">
+                          <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
+                            <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground uppercase break-words w-full md:w-auto">
                               {rel.customTitle || rel.title || rel.name}
                             </h3>
                             <div className="flex gap-2">
@@ -416,34 +416,36 @@ export default function ProjectDetailsPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap w-full md:w-auto">
                           <Link
                             href={`/dashboard/projects/${id}/releases/${rel.id}/edit`}
-                            className="font-mono text-xs border border-border/50 bg-background px-4 py-2 rounded-lg hover:bg-surface text-foreground hover:text-accent transition-colors flex items-center gap-2"
+                            className="font-mono text-xs border border-border/50 bg-background px-4 py-2.5 rounded-lg hover:bg-surface text-foreground hover:text-accent transition-colors flex items-center justify-center gap-2 flex-1 md:flex-none"
                           >
                             <Edit3 size={14} />
                             Edit Release
                           </Link>
                           
-                          <button
-                            onClick={() => handleSetCurrent(rel.id)}
-                            disabled={rel.isCurrent}
-                            className={`font-mono text-xs border px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                              rel.isCurrent 
-                                ? "bg-accent/5 border-accent/10 text-accent/40 cursor-not-allowed"
-                                : "border-border/50 bg-background hover:bg-emerald-500/10 text-foreground hover:text-emerald-500 hover:border-emerald-500/30"
-                            }`}
-                          >
-                            <CheckCircle size={14} />
-                            Set Current
-                          </button>
+                          <div className="flex gap-2 flex-1 sm:flex-none">
+                            <button
+                              onClick={() => handleSetCurrent(rel.id)}
+                              disabled={rel.isCurrent}
+                              className={`font-mono text-xs border px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-none ${
+                                rel.isCurrent 
+                                  ? "bg-accent/5 border-accent/10 text-accent/40 cursor-not-allowed"
+                                  : "border-border/50 bg-background hover:bg-emerald-500/10 text-foreground hover:text-emerald-500 hover:border-emerald-500/30"
+                              }`}
+                            >
+                              <CheckCircle size={14} />
+                              Set Current
+                            </button>
 
-                          <button
-                            onClick={() => handleDeleteRelease(rel.id)}
-                            className="font-mono text-xs border border-red-500/20 bg-background px-4 py-2 rounded-lg hover:bg-red-500/10 text-red-500/80 hover:text-red-500 transition-colors flex items-center gap-2"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <button
+                              onClick={() => handleDeleteRelease(rel.id)}
+                              className="font-mono text-xs border border-red-500/20 bg-background px-4 py-2.5 rounded-lg hover:bg-red-500/10 text-red-500/80 hover:text-red-500 transition-colors flex items-center justify-center gap-2 flex-none"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
 

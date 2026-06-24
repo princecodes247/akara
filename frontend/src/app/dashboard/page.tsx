@@ -44,15 +44,15 @@ export default function Dashboard() {
   return (
     <div className="animate-in fade-in duration-500 flex flex-col h-full">
       <div className="grid grid-cols-1 md:grid-cols-12 border-b border-border">
-        <div className="md:col-span-4 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center bg-surface/30">
+        <div className="md:col-span-4 p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center bg-surface/30">
           <h1 className="text-4xl font-black uppercase tracking-tighter">Projects</h1>
         </div>
-        <div className="md:col-span-5 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center">
+        <div className="md:col-span-5 p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center">
           <p className="text-foreground/60 font-mono text-sm uppercase">Manage mapped repositories and orchestration rules.</p>
         </div>
         <Link 
           href="/dashboard/projects/new"
-          className="md:col-span-3 flex items-center justify-center p-8 md:p-12 bg-surface hover:bg-foreground hover:text-background text-foreground transition-colors group"
+          className="md:col-span-3 flex items-center justify-center p-5 sm:p-8 md:p-12 bg-surface hover:bg-foreground hover:text-background text-foreground transition-colors group"
         >
           <div className="flex items-center gap-2 font-mono font-bold uppercase tracking-wider">
             <Plus size={18} className="text-accent group-hover:text-background" />
@@ -61,7 +61,7 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="p-8 md:p-12 flex-1 max-w-7xl mx-auto w-full">
+      <div className="p-5 sm:p-8 md:p-12 flex-1 max-w-7xl mx-auto w-full">
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
