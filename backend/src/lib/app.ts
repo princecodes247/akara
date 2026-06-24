@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import config from './config';
 
 type AppRoute = 
   | { path: string; router: Router }
@@ -37,7 +38,18 @@ export const setupApp = (options: AppOptions): Express => {
   });
   app.use(limiter);
 
-  app.use(cors());
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/public')) {
+      // Public APIs are accessible from anywhere
+      cors()(req, res, next);
+    } else {
+      // Internal APIs are restricted to the frontend
+      cors({
+        origin: config.FRONTEND_URL,
+        credentials: true,
+      })(req, res, next);
+    }
+  });
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan('dev'));
