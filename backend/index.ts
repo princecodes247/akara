@@ -13,7 +13,7 @@ const port = process.env.PORT || 4000;
 const app = setupApp({
   routes: [
     {
-      prefix: "/api",
+      prefix: "/v1",
       routes: [
         { path: "/projects", router: projectsRouter },
         { path: "/auth", router: authRouter },

@@ -39,7 +39,7 @@ export const setupApp = (options: AppOptions): Express => {
   app.use(limiter);
 
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/public')) {
+    if (req.path.startsWith('/v1/public')) {
       // Public APIs are accessible from anywhere
       cors()(req, res, next);
     } else {

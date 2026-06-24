@@ -7,7 +7,7 @@ export const publicRouter = Router();
 publicRouter.use("/docs", apiReference({
   theme: "default",
   spec: {
-    url: "/api/public/openapi.json"
+    url: "/v1/public/openapi.json"
   }
 }));
 publicRouter.get("/openapi.json", publicController.getOpenApiSpec);

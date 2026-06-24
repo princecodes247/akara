@@ -90,7 +90,7 @@ export class ProjectsService {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
-          url: `${config.BASE_URL}/api/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
+          url: `${config.BASE_URL}/v1/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
         };
       }
     });

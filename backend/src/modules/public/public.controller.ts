@@ -13,7 +13,7 @@ export class PublicController {
       },
       servers: [
         {
-          url: `${config.BASE_URL}/api/public`,
+          url: `${config.BASE_URL}/v1/public`,
           description: "Local Backend Server"
         }
       ],
