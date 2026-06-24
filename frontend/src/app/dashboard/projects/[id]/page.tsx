@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Folder, Eye } from "lucide-react";
+import { ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Folder, Eye, Settings } from "lucide-react";
 import { config } from "@/lib/config";
 
 export default function ProjectDetailsPage() {
@@ -154,7 +154,16 @@ export default function ProjectDetailsPage() {
           </div>
         </Link>
         <div className="md:col-span-4 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center bg-surface/30">
-          <h1 className="text-4xl font-black uppercase tracking-tighter truncate" title={project.name}>{project.name}</h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-4xl font-black uppercase tracking-tighter truncate" title={project.name}>{project.name}</h1>
+            <Link
+              href={`/dashboard/projects/${id}/settings`}
+              className="text-foreground/40 hover:text-accent transition-colors shrink-0 p-2 border border-transparent hover:border-border hover:bg-background rounded-sm"
+              title="Project Settings"
+            >
+              <Settings size={20} />
+            </Link>
+          </div>
         </div>
         <div className="md:col-span-5 p-8 md:p-12 flex flex-col justify-center bg-background">
           <div className="space-y-4">

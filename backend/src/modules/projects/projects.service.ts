@@ -425,6 +425,53 @@ export class ProjectsService {
       ...insertData,
     };
   }
+
+  async updateProject(id: string, data: { name: string; sourceRepos?: string[]; targetRepo?: string | null }) {
+    if (!data.name) {
+      throw new Error("Missing required fields");
+    }
+
+    const updateObj: any = {
+      name: data.name
+    };
+
+    if (data.sourceRepos !== undefined) {
+      updateObj.sourceRepos = data.sourceRepos;
+    }
+
+    if (data.targetRepo !== undefined) {
+      updateObj.targetRepo = data.targetRepo;
+    }
+
+    const result = await db.collections.projects.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateObj }
+    );
+
+    if (result.matchedCount === 0) {
+      throw new Error("Project not found");
+    }
+
+    return { success: true };
+  }
+
+  async deleteProject(id: string) {
+    const projectId = new ObjectId(id);
+
+    // Delete the project document
+    const result = await db.collections.projects.deleteOne({ _id: projectId });
+    if (result.deletedCount === 0) {
+      throw new Error("Project not found");
+    }
+
+    // Delete stagedReleases associated with this project
+    await db.collections.stagedReleases.deleteMany({ projectId });
+
+    // Delete releaseMappings associated with this project
+    await db.collections.releaseMappings.deleteMany({ projectId });
+
+    return { success: true };
+  }
 }
 
 export const projectsService = new ProjectsService();

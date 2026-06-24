@@ -103,6 +103,54 @@ export class ProjectsController {
       next(error);
     }
   }
+
+  async updateProject(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const { name, sourceRepos, targetRepo } = req.body;
+      const username = req.user?.username;
+      const githubToken = req.user?.githubToken;
+
+      if (!githubToken || !username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      let normalizedTargetRepo = targetRepo || null;
+      if (normalizedTargetRepo) {
+        if (!normalizedTargetRepo.includes("/")) {
+          normalizedTargetRepo = `${username}/${normalizedTargetRepo}`;
+        }
+        const exists = await githubService.checkRepoExists(githubToken, normalizedTargetRepo);
+        if (!exists) {
+          await githubService.createRepo(githubToken, username, normalizedTargetRepo);
+        }
+      }
+
+      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo });
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message === "Missing required fields") {
+        return res.status(400).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async deleteProject(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      await projectsService.deleteProject(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const projectsController = new ProjectsController();

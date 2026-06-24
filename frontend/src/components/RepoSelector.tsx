@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Check, ChevronsUpDown, Loader2, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Plus, X } from "lucide-react";
 import { config } from "@/lib/config";
 
 interface Repo {
@@ -71,7 +71,11 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
       }
       setSearch("");
     } else {
-      onChange(repoFullName);
+      if (selected === repoFullName) {
+        onChange("");
+      } else {
+        onChange(repoFullName);
+      }
       setOpen(false);
       setSearch("");
     }
@@ -87,17 +91,34 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
       {description && <p className="text-foreground/60 text-sm mb-4">{description}</p>}
 
       <div 
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between bg-background border border-border px-4 py-3 cursor-pointer hover:border-accent transition-colors"
+        className="w-full flex items-center justify-between bg-background border border-border hover:border-accent transition-colors"
       >
-        <span className="text-foreground/80 truncate">
+        <div 
+          onClick={() => setOpen(!open)}
+          className="flex-1 px-4 py-3 cursor-pointer truncate text-foreground/80"
+        >
           {multiSelect 
             ? Array.isArray(selected) && selected.length > 0 
               ? `${selected.length} repositories selected`
               : "Select repositories..."
             : selected || "Select a repository..."}
-        </span>
-        <ChevronsUpDown size={16} className="text-foreground/50" />
+        </div>
+        <div className="flex items-center gap-2 pr-4">
+          {!multiSelect && selected && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange("");
+              }}
+              className="p-1 hover:text-red-455 text-foreground/40 transition-colors"
+              title="Clear selection"
+            >
+              <X size={14} />
+            </button>
+          )}
+          <ChevronsUpDown size={16} className="text-foreground/50 cursor-pointer" onClick={() => setOpen(!open)} />
+        </div>
       </div>
 
       {open && (
