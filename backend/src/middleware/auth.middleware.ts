@@ -4,7 +4,7 @@ import { db } from "../db";
 
 export interface AuthRequest extends Request {
   user?: {
-    userId: number;
+    userId: string;
     username: string;
     avatarUrl: string;
     githubToken: string;
@@ -27,14 +27,18 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
   try {
     const decoded = jwt.verify(token, jwtSecret) as any;
     
-    // Dynamically retrieve the user's githubToken from the database
+    // Dynamically retrieve the user from the database
     const user = await db.collections.users.findOne({ githubId: String(decoded.userId) });
     
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized: User not found in database" });
+    }
+    
     req.user = {
-      userId: decoded.userId,
+      userId: String(user._id),
       username: decoded.username,
       avatarUrl: decoded.avatarUrl,
-      githubToken: user ? user.githubToken : "",
+      githubToken: user.githubToken || "",
     };
     
     next();

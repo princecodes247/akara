@@ -4,20 +4,25 @@ import { githubService } from "../github/github.service";
 import config from "../../lib/config";
 
 export class ProjectsService {
-  async getAllProjects() {
-    return await db.collections.projects.find();
+  async getAllProjects(userId?: string) {
+    const query = userId ? { userId: new ObjectId(userId) } : {};
+    return await db.collections.projects.find(query);
   }
 
-  async getProjectById(id: string) {
-    const project = await db.collections.projects.findById(id);
+  async getProjectById(id: string, userId?: string) {
+    const query: any = { _id: new ObjectId(id) };
+    if (userId) {
+      query.userId = new ObjectId(userId);
+    }
+    const project = await db.collections.projects.findOne(query);
     if (!project) {
       throw new Error("Project not found");
     }
     return project;
   }
 
-  async getProjectReleases(id: string, githubToken: string) {
-    const project = await this.getProjectById(id);
+  async getProjectReleases(id: string, githubToken: string, userId?: string) {
+    const project = await this.getProjectById(id, userId);
     const sourceRepos = project.sourceRepos || [];
 
     // Fetch releases for all source repos concurrently
@@ -289,7 +294,9 @@ export class ProjectsService {
     }
   }
 
-  async deleteStagedRelease(projectId: string, sourceReleaseId: string) {
+  async deleteStagedRelease(projectId: string, sourceReleaseId: string, userId?: string) {
+    // Check ownership
+    await this.getProjectById(projectId, userId);
     const stage = await db.collections.stagedReleases.findOne({
       projectId: new ObjectId(projectId),
       sourceReleaseId,
@@ -321,7 +328,9 @@ export class ProjectsService {
     customTitle?: string,
     customBody?: string,
     customAssets?: any[]
-  }) {
+  }, userId?: string) {
+    // Check ownership
+    await this.getProjectById(projectId, userId);
     if (data.isCurrent) {
       // If setting to current, unset isCurrent on all other staged releases for this project
       const allStaged = await db.collections.stagedReleases.find({ projectId: new ObjectId(projectId) });
@@ -401,7 +410,7 @@ export class ProjectsService {
     }
   }
 
-  async createProject(data: { name: string; sourceRepos: string[]; targetRepo?: string | null; githubId?: string }) {
+  async createProject(data: { name: string; sourceRepos: string[]; targetRepo?: string | null; userId?: string }) {
     if (!data.name || !data.sourceRepos || data.sourceRepos.length === 0) {
       throw new Error("Missing required fields");
     }
@@ -412,11 +421,8 @@ export class ProjectsService {
       targetRepo: data.targetRepo || null,
     };
 
-    if (data.githubId) {
-      const user = await db.collections.users.findOne({ githubId: data.githubId });
-      if (user) {
-        insertData.userId = user._id;
-      }
+    if (data.userId) {
+      insertData.userId = new ObjectId(data.userId);
     }
 
     const result = await db.collections.projects.insertOne(insertData);
@@ -426,7 +432,7 @@ export class ProjectsService {
     };
   }
 
-  async updateProject(id: string, data: { name: string; sourceRepos?: string[]; targetRepo?: string | null }) {
+  async updateProject(id: string, data: { name: string; sourceRepos?: string[]; targetRepo?: string | null }, userId?: string) {
     if (!data.name) {
       throw new Error("Missing required fields");
     }
@@ -443,8 +449,13 @@ export class ProjectsService {
       updateObj.targetRepo = data.targetRepo;
     }
 
+    const query: any = { _id: new ObjectId(id) };
+    if (userId) {
+      query.userId = new ObjectId(userId);
+    }
+
     const result = await db.collections.projects.updateOne(
-      { _id: new ObjectId(id) },
+      query,
       { $set: updateObj }
     );
 
@@ -455,11 +466,16 @@ export class ProjectsService {
     return { success: true };
   }
 
-  async deleteProject(id: string) {
+  async deleteProject(id: string, userId?: string) {
     const projectId = new ObjectId(id);
 
+    const query: any = { _id: projectId };
+    if (userId) {
+      query.userId = new ObjectId(userId);
+    }
+
     // Delete the project document
-    const result = await db.collections.projects.deleteOne({ _id: projectId });
+    const result = await db.collections.projects.deleteOne(query);
     if (result.deletedCount === 0) {
       throw new Error("Project not found");
     }

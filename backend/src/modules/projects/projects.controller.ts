@@ -4,20 +4,25 @@ import type { AuthRequest } from "../../middleware/auth.middleware";
 import { githubService } from "../github/github.service";
 
 export class ProjectsController {
-  async getProjects(req: Request, res: Response, next: NextFunction) {
+  async getProjects(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const projects = await projectsService.getAllProjects();
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const projects = await projectsService.getAllProjects(userId);
       res.json(projects);
     } catch (error) {
       next(error);
     }
   }
 
-  async getProjectById(req: Request, res: Response, next: NextFunction) {
+  async getProjectById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      const project = await projectsService.getProjectById(id);
+      const project = await projectsService.getProjectById(id, userId);
       res.json(project);
     } catch (error: any) {
       if (error.message === "Project not found") {
@@ -31,12 +36,13 @@ export class ProjectsController {
     try {
       const { id } = req.params as { id: string };
       const githubToken = req.user?.githubToken;
+      const userId = req.user?.userId;
 
-      if (!githubToken) {
+      if (!githubToken || !userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const releases = await projectsService.getProjectReleases(id, githubToken);
+      const releases = await projectsService.getProjectReleases(id, githubToken, userId);
       res.json(releases);
     } catch (error: any) {
       if (error.message === "Project not found") {
@@ -51,8 +57,11 @@ export class ProjectsController {
       const { id, releaseId } = req.params as { id: string; releaseId: string };
       const { status, isCurrent, releaseData, customTitle, customBody, customAssets } = req.body;
       const githubToken = req.user?.githubToken;
+      const userId = req.user?.userId;
 
-      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken, customTitle, customBody, customAssets });
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const mapping = await projectsService.updateReleaseMapping(id, releaseId, { status, isCurrent, releaseData, githubToken, customTitle, customBody, customAssets }, userId);
       res.json(mapping);
     } catch (error) {
       next(error);
@@ -62,7 +71,11 @@ export class ProjectsController {
   async deleteReleaseMapping(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id, releaseId } = req.params as { id: string; releaseId: string };
-      await projectsService.deleteStagedRelease(id, releaseId);
+      const userId = req.user?.userId;
+
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      await projectsService.deleteStagedRelease(id, releaseId, userId);
       res.json({ success: true });
     } catch (error) {
       next(error);
@@ -93,8 +106,8 @@ export class ProjectsController {
         }
       }
 
-      const githubId = String(req.user?.userId);
-      const result = await projectsService.createProject({ name, sourceRepos, targetRepo: normalizedTargetRepo, githubId });
+      const userId = req.user?.userId;
+      const result = await projectsService.createProject({ name, sourceRepos, targetRepo: normalizedTargetRepo, userId });
       res.status(201).json(result);
     } catch (error: any) {
       if (error.message === "Missing required fields") {
@@ -110,8 +123,9 @@ export class ProjectsController {
       const { name, sourceRepos, targetRepo } = req.body;
       const username = req.user?.username;
       const githubToken = req.user?.githubToken;
+      const userId = req.user?.userId;
 
-      if (!githubToken || !username) {
+      if (!githubToken || !username || !userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
@@ -126,7 +140,7 @@ export class ProjectsController {
         }
       }
 
-      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo });
+      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo }, userId);
       res.json({ success: true });
     } catch (error: any) {
       if (error.message === "Project not found") {
@@ -142,7 +156,11 @@ export class ProjectsController {
   async deleteProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
-      await projectsService.deleteProject(id);
+      const userId = req.user?.userId;
+
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      await projectsService.deleteProject(id, userId);
       res.json({ success: true });
     } catch (error: any) {
       if (error.message === "Project not found") {
