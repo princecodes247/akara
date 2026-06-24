@@ -1,44 +1,80 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { Metadata, ResolvingMetadata } from "next";
 import { Loader2, Download, Calendar, GitBranch, Terminal } from "lucide-react";
-import { config } from "@/lib/config";
+import { config as appConfig } from "@/lib/config";
 import ReactMarkdown from "react-markdown";
 
-export default function PublicReleasePage() {
-  const params = useParams();
-  const id = params.id as string;
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
-  const [data, setData] = useState<{ project: any; releases: any[] } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+async function getProjectData(slug: string) {
+  const res = await fetch(`${appConfig.apiUrl}/public/projects/${slug}`, {
+    // Next.js fetch caching options. We use next: { revalidate } to ensure it updates reasonably fast
+    next: { revalidate: 60 } // Revalidate every minute
+  });
+  if (!res.ok) {
+    throw new Error("Project not found or an error occurred.");
+  }
+  return res.json();
+}
 
-  useEffect(() => {
-    const fetchPublicData = async () => {
-      try {
-        const res = await fetch(`${config.apiUrl}/public/projects/${id}`);
-        if (!res.ok) {
-          throw new Error("Project not found or an error occurred.");
-        }
-        const json = await res.json();
-        setData(json);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const data = await getProjectData(slug);
+    const { project, releases } = data;
+
+    // Find explicitly marked current release, or fallback to the newest one
+    const explicitCurrent = releases.find((r: any) => r.isCurrent);
+    const currentRelease = explicitCurrent || (releases.length > 0 ? releases[0] : null);
+
+    const title = project.seoTitle || (currentRelease ? `${project.name} ${currentRelease.tag}` : `${project.name} Releases`);
+    
+    // Construct dynamic description from release title or fallback
+    let fallbackDesc = `Download official releases and artifacts for ${project.name}.`;
+    if (currentRelease) {
+      fallbackDesc = `Download the latest release (${currentRelease.tag}) for ${project.name}.`;
+      if (currentRelease.title && currentRelease.title !== currentRelease.tag) {
+        fallbackDesc += ` ${currentRelease.title}`;
       }
-    };
-    fetchPublicData();
-  }, [id]);
+    }
+    
+    const description = project.seoDescription || fallbackDesc;
 
-  if (loading) {
-    return (
-      <div className="flex flex-col h-screen w-full items-center justify-center bg-background text-foreground">
-        <Loader2 size={48} className="animate-spin text-accent mb-4" />
-        <p className="font-mono text-foreground/60 uppercase tracking-wider">Syncing Release Data...</p>
-      </div>
-    );
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        siteName: "Akara",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+      },
+    };
+  } catch (error) {
+    return {
+      title: "Project Not Found | Akara",
+      description: "Could not find the requested project releases.",
+    };
+  }
+}
+
+export default async function PublicReleasePage({ params }: Props) {
+  const { slug } = await params;
+  let data;
+  let error = "";
+
+  try {
+    data = await getProjectData(slug);
+  } catch (err: any) {
+    error = err.message;
   }
 
   if (error || !data) {
@@ -57,11 +93,11 @@ export default function PublicReleasePage() {
   const releases = data.releases;
 
   // Find explicitly marked current release, or fallback to the newest one
-  const explicitCurrent = releases.find(r => r.isCurrent);
+  const explicitCurrent = releases.find((r: any) => r.isCurrent);
   const currentRelease = explicitCurrent || (releases.length > 0 ? releases[0] : null);
   
   // Previous releases are all other releases
-  const previousReleases = releases.filter(r => r.id !== currentRelease?.id);
+  const previousReleases = releases.filter((r: any) => r.id !== currentRelease?.id);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">
@@ -169,7 +205,7 @@ export default function PublicReleasePage() {
             </h2>
             
             <div className="flex flex-col gap-4">
-              {previousReleases.map((release) => (
+              {previousReleases.map((release: any) => (
                 <div key={release.id} className="flex flex-col md:flex-row justify-between p-6 border border-border bg-surface/20 hover:border-foreground transition-colors group">
                   <div className="flex items-start md:items-center gap-4 mb-4 md:mb-0">
                     <span className="font-mono font-bold text-lg w-24 shrink-0 group-hover:text-accent transition-colors">

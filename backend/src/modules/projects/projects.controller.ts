@@ -129,7 +129,7 @@ export class ProjectsController {
   async updateProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
-      const { name, sourceRepos, targetRepo } = req.body;
+      const { name, sourceRepos, targetRepo, slug, seoTitle, seoDescription } = req.body;
       const username = req.user?.username;
       const githubToken = req.user?.githubToken;
       const userId = req.user?.userId;
@@ -149,14 +149,17 @@ export class ProjectsController {
         }
       }
 
-      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo }, userId);
+      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo, slug, seoTitle, seoDescription }, userId);
       res.json({ success: true });
     } catch (error: any) {
       if (error.message === "Project not found") {
         return res.status(404).json({ error: error.message });
       }
-      if (error.message === "Missing required fields") {
+      if (error.message === "Missing required fields" || error.message === "Invalid slug") {
         return res.status(400).json({ error: error.message });
+      }
+      if (error.message === "Slug is already in use") {
+        return res.status(409).json({ error: error.message });
       }
       next(error);
     }

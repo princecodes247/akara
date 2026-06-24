@@ -13,6 +13,9 @@ export default function ProjectSettingsPage() {
   const id = params.id as string;
 
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
   const [targetRepo, setTargetRepo] = useState("");
   const [sourceRepos, setSourceRepos] = useState<string[]>([]);
   const [originalName, setOriginalName] = useState("");
@@ -34,6 +37,9 @@ export default function ProjectSettingsPage() {
         if (!res.ok) throw new Error("Failed to load project details");
         const data = await res.json();
         setName(data.name);
+        setSlug(data.slug || "");
+        setSeoTitle(data.seoTitle || "");
+        setSeoDescription(data.seoDescription || "");
         setOriginalName(data.name);
         setSourceRepos(data.sourceRepos || []);
         setTargetRepo(data.targetRepo || "");
@@ -69,7 +75,7 @@ export default function ProjectSettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name, targetRepo, sourceRepos })
+        body: JSON.stringify({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription })
       });
 
       if (!res.ok) {
@@ -175,6 +181,51 @@ export default function ProjectSettingsPage() {
                 className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors"
                 required
               />
+            </div>
+
+            <div className="border-t border-border pt-8">
+              <label className="block text-sm font-bold font-mono text-foreground mb-2 uppercase tracking-wider">
+                Project URL Slug
+              </label>
+              <p className="text-foreground/60 text-xs mb-4 font-mono">
+                Used for public release URLs (e.g. akara.com/p/<b>{slug || 'your-slug'}</b>)
+              </p>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="e.g. core-engine"
+                className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors"
+              />
+            </div>
+
+            <div className="border-t border-border pt-8">
+              <h3 className="text-sm font-bold font-mono text-foreground mb-4 uppercase tracking-wider border-l-2 border-accent pl-3">SEO & Metadata</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold font-mono text-foreground/80 mb-2 uppercase tracking-wider">
+                    SEO Title
+                  </label>
+                  <input
+                    type="text"
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    placeholder={`e.g. ${name || 'Project'} Releases`}
+                    className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold font-mono text-foreground/80 mb-2 uppercase tracking-wider">
+                    SEO Description
+                  </label>
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    placeholder={`Download official releases for ${name || 'this project'}.`}
+                    className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors text-sm min-h-[100px]"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="border-t border-border pt-8">

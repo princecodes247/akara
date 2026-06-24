@@ -16,6 +16,9 @@ const projectSchema = createSchema("projects", {
   sourceRepos: array(string()),
   targetRepo: string().nullable(),
   userId: objectId().optional(),
+  slug: string().optional(),
+  seoTitle: string().optional(),
+  seoDescription: string().optional(),
 });
 
 const releaseMappingSchema = createSchema("releaseMappings", {

@@ -9,8 +9,14 @@ export class ProjectsService {
     return await db.collections.projects.find(query);
   }
 
-  async getProjectById(id: string, userId?: string) {
-    const query: any = { _id: new ObjectId(id) };
+  async getProjectById(slugOrId: string, userId?: string) {
+    let query: any;
+    if (ObjectId.isValid(slugOrId)) {
+      query = { $or: [{ _id: new ObjectId(slugOrId) }, { slug: slugOrId }] };
+    } else {
+      query = { slug: slugOrId };
+    }
+    
     if (userId) {
       query.userId = new ObjectId(userId);
     }
@@ -108,13 +114,13 @@ export class ProjectsService {
   async getPublicProjectData(id: string) {
     const project = await this.getProjectById(id);
 
-    // Fetch staged releases for this project from the database
-    const staged = await db.collections.stagedReleases.find({ projectId: new ObjectId(id) });
+    // Fetch staged releases for this project from the database using the resolved project._id
+    const staged = await db.collections.stagedReleases.find({ projectId: project._id });
 
     // Only return releases that are marked as public
     const publicStaged = staged.filter((s: any) => s.status === "public");
 
-    const allReleases = publicStaged.map((s: any) => this.formatPublicRelease(project, s, id));
+    const allReleases = publicStaged.map((s: any) => this.formatPublicRelease(project, s, project._id.toString()));
 
     allReleases.sort((a: any, b: any) => {
       const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
@@ -136,9 +142,9 @@ export class ProjectsService {
   async getCurrentRelease(id: string) {
     const project = await this.getProjectById(id);
 
-    // Fetch staged releases for this project from the database
+    // Fetch staged releases for this project from the database using the resolved project._id
     const staged = await db.collections.stagedReleases.find({
-      projectId: new ObjectId(id),
+      projectId: project._id,
       status: "public"
     });
 
@@ -157,7 +163,7 @@ export class ProjectsService {
       current = staged[0];
     }
 
-    return this.formatPublicRelease(project, current, id);
+    return this.formatPublicRelease(project, current, project._id.toString());
   }
 
   async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string, bypassPublicCheck = false) {
@@ -428,10 +434,20 @@ export class ProjectsService {
       throw new Error("Missing required fields");
     }
 
+    let finalSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    let slugExists = await db.collections.projects.findOne({ slug: finalSlug });
+    let counter = 1;
+    while (slugExists) {
+      finalSlug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}-${counter}`;
+      slugExists = await db.collections.projects.findOne({ slug: finalSlug });
+      counter++;
+    }
+
     const insertData: any = {
       name: data.name,
       sourceRepos: data.sourceRepos,
       targetRepo: data.targetRepo || null,
+      slug: finalSlug,
     };
 
     if (data.userId) {
@@ -445,14 +461,12 @@ export class ProjectsService {
     };
   }
 
-  async updateProject(id: string, data: { name: string; sourceRepos?: string[]; targetRepo?: string | null }, userId?: string) {
-    if (!data.name) {
-      throw new Error("Missing required fields");
-    }
+  async updateProject(id: string, data: { name?: string; sourceRepos?: string[]; targetRepo?: string | null; slug?: string; seoTitle?: string; seoDescription?: string }, userId?: string) {
+    const updateObj: any = {};
 
-    const updateObj: any = {
-      name: data.name
-    };
+    if (data.name !== undefined) {
+      updateObj.name = data.name;
+    }
 
     if (data.sourceRepos !== undefined) {
       updateObj.sourceRepos = data.sourceRepos;
@@ -460,6 +474,32 @@ export class ProjectsService {
 
     if (data.targetRepo !== undefined) {
       updateObj.targetRepo = data.targetRepo;
+    }
+
+    if (data.slug !== undefined) {
+      const formattedSlug = data.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      if (!formattedSlug) {
+        throw new Error("Invalid slug");
+      }
+      
+      const existingWithSlug = await db.collections.projects.findOne({ 
+        slug: formattedSlug,
+        _id: { $ne: new ObjectId(id) } 
+      });
+
+      if (existingWithSlug) {
+        throw new Error("Slug is already in use");
+      }
+
+      updateObj.slug = formattedSlug;
+    }
+
+    if (data.seoTitle !== undefined) {
+      updateObj.seoTitle = data.seoTitle;
+    }
+
+    if (data.seoDescription !== undefined) {
+      updateObj.seoDescription = data.seoDescription;
     }
 
     const query: any = { _id: new ObjectId(id) };
