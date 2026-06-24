@@ -66,7 +66,7 @@ export default function Home() {
             className="group relative inline-flex items-center justify-between gap-6 bg-foreground text-background px-8 py-4 font-bold text-lg brutalist-shadow"
           >
             <span className="font-mono uppercase tracking-wider">
-              {isLoggedIn ? "Go to Dashboard" : "Initialize Session"}
+              {isLoggedIn ? "Go to Dashboard" : "Get Started"}
             </span>
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>

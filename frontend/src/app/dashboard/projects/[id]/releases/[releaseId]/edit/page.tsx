@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Save, Send, Trash2, Eye, Edit2, Box, Tag, Folder, Sparkles, Download, Check } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Send, Trash2, Edit2, Box, Tag, Sparkles, Check, ChevronDown, ChevronUp, FileCode, Search, MousePointerClick, RefreshCw, Eye } from "lucide-react";
 import { config } from "@/lib/config";
 import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CustomAsset {
   id: string | number;
@@ -36,7 +37,6 @@ export default function EditReleasePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [activeDropdownAssetId, setActiveDropdownAssetId] = useState<string | number | null>(null);
 
   const PLATFORMS = [
     "macOS-x64",
@@ -114,6 +114,25 @@ export default function EditReleasePage() {
     });
   };
 
+  const inferPlatformTag = (filename: string) => {
+    const lower = filename.toLowerCase();
+    if (lower.includes("mac") || lower.includes("darwin") || lower.endsWith(".dmg") || lower.endsWith(".pkg")) {
+      if (lower.includes("arm64") || lower.includes("aarch64") || lower.includes("m1")) return "macOS-arm64";
+      return "macOS-x64";
+    }
+    if (lower.includes("win") || lower.endsWith(".exe") || lower.endsWith(".msi")) {
+      if (lower.includes("arm64")) return "Windows-arm64";
+      return "Windows-x64";
+    }
+    if (lower.includes("linux") || lower.endsWith(".appimage") || lower.endsWith(".deb") || lower.endsWith(".rpm") || lower.endsWith(".tar.gz")) {
+      if (lower.includes("arm64") || lower.includes("aarch64")) return "Linux-arm64";
+      return "Linux-x64";
+    }
+    if (lower.endsWith(".apk") || lower.includes("android")) return "Android";
+    if (lower.endsWith(".ipa") || lower.includes("ios")) return "iOS";
+    return "";
+  };
+
   const handleAssetToggle = (asset: any, sourceRepo: string, sourceRelId: string) => {
     setSelectedAssets(prev => {
       const exists = prev.some(a => String(a.id) === String(asset.id));
@@ -125,7 +144,7 @@ export default function EditReleasePage() {
           {
             id: asset.id,
             name: asset.name,
-            tag: "",
+            tag: inferPlatformTag(asset.name),
             sourceRepo,
             sourceReleaseId: String(sourceRelId)
           }
@@ -171,7 +190,7 @@ export default function EditReleasePage() {
 
       if (!res.ok) throw new Error("Failed to save release mapping");
       
-      alert(status === "public" ? "Release promoted successfully!" : "Draft saved successfully!");
+      alert(status === "public" ? "Release published successfully!" : "Draft saved successfully!");
       router.push(`/dashboard/projects/${projectId}`);
     } catch (err: any) {
       alert(err.message);
@@ -189,29 +208,27 @@ export default function EditReleasePage() {
     );
   }
 
-  // Filter artifacts list (all releases act as artifacts)
   const artifacts = allReleases;
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Editor Header */}
-      <header className="border-b border-border bg-surface/30 px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="border-b border-border/50 bg-surface/10 px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <Link
             href={`/dashboard/projects/${projectId}`}
-            className="flex items-center gap-2 font-mono text-xs font-bold text-foreground/60 hover:text-accent uppercase transition-colors"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-surface/50 hover:bg-surface border border-border/50 transition-colors text-foreground group"
           >
-            <ArrowLeft size={16} />
-            Back to Project
+            <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
           </Link>
-          <div className="border-l border-border h-4 hidden md:block"></div>
+          <div className="border-l border-border/50 h-6 hidden md:block mx-2"></div>
           <div>
-            <h1 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+            <h1 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
               <Sparkles size={18} className="text-accent" />
-              Release Builder Staging
+              Release Builder
             </h1>
-            <p className="font-mono text-[10px] text-foreground/50 uppercase mt-0.5">
-              Staging base artifact: <span className="text-accent">{currentRelease.tag}</span>
+            <p className="font-mono text-[10px] text-foreground/50 uppercase mt-0.5 tracking-wider">
+              Base Artifact: <span className="text-accent font-bold">{currentRelease.tag}</span>
             </p>
           </div>
         </div>
@@ -219,313 +236,300 @@ export default function EditReleasePage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setPreviewMode(!previewMode)}
-            className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border px-4 py-2 hover:bg-surface transition-colors"
+            className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border/50 rounded-lg px-4 py-2 hover:bg-surface/50 transition-colors shadow-sm"
           >
             {previewMode ? <Edit2 size={14} /> : <Eye size={14} />}
-            {previewMode ? "Editor Mode" : "Preview Notes"}
+            {previewMode ? "Editor Mode" : "Preview"}
           </button>
 
           <button
             disabled={saving}
             onClick={() => handleSave("draft")}
-            className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border px-4 py-2 bg-surface hover:bg-surface-hover text-foreground transition-colors"
+            className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border/50 rounded-lg px-4 py-2 bg-surface/30 hover:bg-surface text-foreground transition-colors shadow-sm"
           >
-            <Save size={14} />
+            {saving && <RefreshCw size={14} className="animate-spin" />}
+            {!saving && <Save size={14} />}
             Save Draft
           </button>
 
           <button
             disabled={saving || selectedAssets.length === 0}
             onClick={() => handleSave("public")}
-            className="flex items-center gap-2 font-mono text-xs font-bold uppercase bg-accent text-background px-4 py-2 hover:bg-accent/80 transition-colors brutalist-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 font-mono text-xs font-bold uppercase rounded-lg bg-accent text-background px-6 py-2 hover:bg-accent/90 transition-colors shadow-lg shadow-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={14} />
-            Publish Release
+            Publish
           </button>
         </div>
       </header>
 
-      {/* Editor Body Grid */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-[calc(100vh-68px)]">
-        
-        {/* Left Columns: 🧩 Asset Picker */}
-        <div className="lg:col-span-7 border-r border-border grid grid-cols-1 md:grid-cols-12 bg-surface/5">
+      {/* Editor Body */}
+      <div className="flex-1 max-w-[1600px] w-full mx-auto px-4 md:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
           
-          {/* Left Panel: Selected Artifacts List */}
-          <div className="md:col-span-4 border-r border-border/60 p-6 flex flex-col bg-surface/10">
-            <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider block mb-4 pb-2 border-b border-border">
-              1. Source Artifacts
-            </span>
-            <p className="text-[10px] font-mono text-foreground/50 uppercase mb-4">
-              Toggle artifacts to view and pick assets to bundle:
-            </p>
-            <div className="space-y-2 overflow-y-auto max-h-[60vh] md:max-h-none flex-1 pr-1">
-              {artifacts.map(art => {
-                const isActive = activeArtifactIds.has(String(art.id));
-                const assetsCount = art.assets?.length || 0;
-                return (
-                  <button
-                    key={art.id}
-                    onClick={() => toggleArtifactActive(String(art.id))}
-                    className={`w-full text-left p-3 border font-mono text-xs transition-all flex items-center justify-between ${
-                      isActive 
-                        ? "border-accent bg-accent/5 text-foreground" 
-                        : "border-border/60 bg-background/50 text-foreground/60 hover:border-border"
-                    }`}
-                  >
-                    <div className="truncate pr-2">
-                      <div className="font-bold truncate">{art.tag}</div>
-                      <div className="text-[9px] opacity-60 truncate">{art.sourceRepo}</div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[9px] px-1.5 py-0.5 bg-surface border border-border/80">
-                        {assetsCount}
-                      </span>
-                      <div className={`w-3.5 h-3.5 border flex items-center justify-center ${isActive ? "border-accent bg-accent text-background" : "border-border"}`}>
-                        {isActive && <Check size={10} strokeWidth={3} />}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Main Picker Panel: Assets Grouped by Selected Artifact */}
-          <div className="md:col-span-8 p-6 flex flex-col overflow-y-auto">
-            <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider block mb-4 pb-2 border-b border-border">
-              2. Select Assets
-            </span>
-            
-            {activeArtifactIds.size === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 border border-border border-dashed font-mono text-xs text-foreground/40 text-center">
-                <Folder size={24} className="mb-2 opacity-50" />
-                Select at least one source artifact from the left column to view assets.
+          {/* Left Column: Release Details Form */}
+          <div className="lg:col-span-7 flex flex-col gap-8">
+            {previewMode ? (
+              <div className="flex flex-col h-full bg-surface/10 border border-border/50 rounded-2xl p-8 shadow-sm">
+                <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider mb-6 border-b border-border/30 pb-3 flex items-center gap-2">
+                  <Eye size={16} /> Markdown Preview
+                </span>
+                <div className="prose prose-invert max-w-none font-sans text-sm text-foreground/80 flex-1">
+                  <h1 className="text-3xl font-black uppercase tracking-tighter mb-6">{customTitle || "Untitled Release"}</h1>
+                  {customBody ? <ReactMarkdown>{customBody}</ReactMarkdown> : <p className="italic text-foreground/40 font-mono text-xs">No release notes written yet.</p>}
+                </div>
               </div>
             ) : (
-              <div className="space-y-6 flex-1 pr-1">
-                {artifacts
-                  .filter(art => activeArtifactIds.has(String(art.id)))
-                  .map(art => {
-                    const artAssets = art.assets || [];
-                    return (
-                      <div key={art.id} className="border border-border/60 bg-surface/30 p-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-mono text-xs font-black uppercase text-foreground/80 flex items-center gap-1.5">
-                            <Folder size={12} className="text-accent" />
-                            Artifact {art.tag}
-                          </h4>
-                          <span className="text-[9px] font-mono opacity-50 uppercase">{art.sourceRepo}</span>
-                        </div>
-
-                        {artAssets.length === 0 ? (
-                          <p className="font-mono text-[10px] text-foreground/40 italic">No assets found in this artifact.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {artAssets.map((asset: any) => {
-                              const isSelected = selectedAssets.some(a => String(a.id) === String(asset.id));
-                              return (
-                                <div 
-                                  key={asset.id} 
-                                  className={`flex items-center justify-between p-3 bg-background border rounded-sm transition-all ${
-                                    isSelected ? "border-accent/50" : "border-border/40"
-                                  }`}
-                                >
-                                  <label className="flex items-center gap-3 cursor-pointer font-mono text-xs text-foreground/80 hover:text-foreground flex-1 min-w-0 mr-4">
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => handleAssetToggle(asset, art.sourceRepo, art.id)}
-                                      className="accent-accent cursor-pointer shrink-0"
-                                    />
-                                    <span className="font-bold truncate">{asset.name}</span>
-                                  </label>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    {asset.browser_download_url && (
-                                      <a
-                                        href={asset.browser_download_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Download original file"
-                                        className="p-1 text-foreground/40 hover:text-accent transition-colors"
-                                      >
-                                        <Download size={12} />
-                                      </a>
-                                    )}
-                                    <span className="text-[9px] font-mono px-1.5 py-0.5 bg-surface text-foreground/50 border border-border/40">
-                                      {asset.size ? `${(asset.size / (1024 * 1024)).toFixed(2)} MB` : "file"}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: 🚀 Release Builder Screen */}
-        <div className="lg:col-span-5 flex flex-col p-8 bg-surface/10 overflow-y-auto">
-          {previewMode ? (
-            <div className="flex flex-col h-full">
-              <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider mb-4 border-b border-border pb-2">
-                Markdown Preview
-              </span>
-              <div className="prose prose-invert max-w-none font-mono text-sm text-foreground/80 flex-1">
-                <h1 className="text-2xl font-black uppercase tracking-tight mb-4">{customTitle || "Untitled Release"}</h1>
-                {customBody ? <ReactMarkdown>{customBody}</ReactMarkdown> : <p className="italic text-foreground/40">No notes written yet.</p>}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <span className="font-mono text-xs font-bold text-accent uppercase tracking-wider block mb-4 border-b border-border pb-2">
-                  3. Customize Release Details
-                </span>
+              <div className="space-y-8">
                 
-                {/* Release Name */}
-                <div className="mb-4">
-                  <label className="block font-mono text-[10px] font-bold text-foreground/60 uppercase tracking-wider mb-1.5">
-                    Release Name / Title
-                  </label>
-                  <input
-                    type="text"
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
-                    placeholder="e.g. Version 2.0 Stable Build"
-                    className="w-full bg-surface border border-border px-3 py-2 font-mono text-sm text-foreground focus:border-accent outline-none"
-                  />
+                {/* Basic Details Panel */}
+                <div className="bg-surface/10 border border-border/50 rounded-2xl p-8 shadow-sm">
+                  <h3 className="font-mono text-sm font-bold uppercase tracking-wider mb-6 pb-3 border-b border-border/30 flex items-center gap-2">
+                    <Edit2 size={16} className="text-accent" /> 1. Release Details
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block font-mono text-[11px] font-bold text-foreground/60 uppercase tracking-wider mb-2">
+                        Release Title
+                      </label>
+                      <input
+                        type="text"
+                        value={customTitle}
+                        onChange={(e) => setCustomTitle(e.target.value)}
+                        placeholder="e.g. Version 2.0 Stable Build"
+                        className="w-full bg-background border border-border/50 rounded-lg px-4 py-3 font-sans text-lg font-bold text-foreground focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all shadow-inner"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[11px] font-bold text-foreground/60 uppercase tracking-wider mb-2">
+                        Release Notes (Markdown)
+                      </label>
+                      <textarea
+                        value={customBody}
+                        onChange={(e) => setCustomBody(e.target.value)}
+                        placeholder="Describe changes, enhancements, and bug fixes..."
+                        className="w-full bg-background border border-border/50 rounded-lg px-4 py-3 font-mono text-sm text-foreground/90 focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-y min-h-[200px] transition-all shadow-inner"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Release Notes */}
-                <div className="mb-6">
-                  <label className="block font-mono text-[10px] font-bold text-foreground/60 uppercase tracking-wider mb-1.5">
-                    Release Notes (Markdown)
-                  </label>
-                  <textarea
-                    value={customBody}
-                    onChange={(e) => setCustomBody(e.target.value)}
-                    placeholder="Describe changes, enhancements, and bug fixes..."
-                    className="w-full bg-surface border border-border p-3 font-mono text-xs text-foreground/90 focus:border-accent outline-none resize-none h-44"
-                  />
-                </div>
-
-                {/* Selected Assets with metadata edits */}
-                <div className="mb-6">
-                  <label className="block font-mono text-[10px] font-bold text-foreground/60 uppercase tracking-wider mb-3">
-                    Staged Release Assets ({selectedAssets.length})
-                  </label>
+                {/* Selected Assets Panel */}
+                <div className="bg-surface/10 border border-border/50 rounded-2xl p-8 shadow-sm">
+                  <h3 className="font-mono text-sm font-bold uppercase tracking-wider mb-6 pb-3 border-b border-border/30 flex items-center gap-2">
+                    <Box size={16} className="text-accent" /> 2. Selected Assets
+                    <span className="ml-auto bg-surface px-2 py-0.5 rounded text-[10px] text-foreground/60">{selectedAssets.length} Assets</span>
+                  </h3>
 
                   {selectedAssets.length === 0 ? (
-                    <div className="border border-border/80 border-dashed p-6 text-center text-[11px] font-mono text-accent uppercase">
-                      ⚠️ A release must contain at least 1 asset.
+                    <div className="border border-border/50 border-dashed rounded-xl p-8 text-center bg-background/50">
+                      <MousePointerClick size={32} className="mx-auto text-foreground/20 mb-3" />
+                      <p className="font-mono text-sm text-foreground/50">No assets selected yet.</p>
+                      <p className="font-mono text-[10px] text-foreground/40 mt-1 uppercase">Select assets from the Artifacts Manager on the right.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {selectedAssets.map((asset) => {
-                        const originalAsset = allReleases
-                          .find(r => String(r.id) === String(asset.sourceReleaseId))
-                          ?.assets?.find((a: any) => String(a.id) === String(asset.id));
+                      <AnimatePresence>
+                        {selectedAssets.map((asset) => {
+                          const originalAsset = allReleases
+                            .find(r => String(r.id) === String(asset.sourceReleaseId))
+                            ?.assets?.find((a: any) => String(a.id) === String(asset.id));
 
-                        return (
-                          <div key={asset.id} className="border border-border bg-background p-3 rounded-sm space-y-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="font-mono text-xs font-bold text-foreground/90 truncate">
-                                  {asset.name}
-                                </div>
-                                <div className="font-mono text-[10px] text-foreground/40 mt-0.5">
-                                  provenance: <span className="text-foreground/60 font-bold">{originalAsset?.name || asset.name}</span> (from {getReleaseTag(asset.sourceReleaseId)})
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => handleAssetToggle(asset, asset.sourceRepo, asset.sourceReleaseId)}
-                                className="text-foreground/40 hover:text-red-500 transition-colors p-1"
-                                title="Remove asset"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
-                              <div>
-                                <label className="block text-[8px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1">
-                                  Public Filename
-                                </label>
-                                <input
-                                  type="text"
-                                  value={asset.name}
-                                  onChange={(e) => handleAssetPropChange(asset.id, "name", e.target.value)}
-                                  className="w-full bg-surface border border-border px-2 py-1 font-mono text-[10px] text-foreground outline-none focus:border-accent"
-                                />
-                              </div>
-                              <div className="relative">
-                                <label className="block text-[8px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1">
-                                  Platform / OS Tag
-                                </label>
-                                <input
-                                  type="text"
-                                  value={asset.tag || ""}
-                                  onChange={(e) => handleAssetPropChange(asset.id, "tag", e.target.value)}
-                                  onFocus={() => setActiveDropdownAssetId(asset.id)}
-                                  onBlur={() => {
-                                    // Delay to let onMouseDown handler select the option before closing
-                                    setTimeout(() => setActiveDropdownAssetId(null), 150);
-                                  }}
-                                  placeholder="e.g. macOS-x64, Linux"
-                                  className="w-full bg-surface border border-border px-2 py-1 font-mono text-[10px] text-foreground outline-none focus:border-accent"
-                                />
-                                {activeDropdownAssetId === asset.id && (
-                                  <div className="absolute z-50 left-0 right-0 mt-1 bg-surface border border-border py-1 shadow-xl max-h-36 overflow-y-auto font-mono text-[10px]">
-                                    {PLATFORMS.map((plat) => (
-                                      <div
-                                        key={plat}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault(); // Prevents blur event from firing too early
-                                          handleAssetPropChange(asset.id, "tag", plat);
-                                          setActiveDropdownAssetId(null);
-                                        }}
-                                        className="px-2 py-1 hover:bg-accent hover:text-background cursor-pointer transition-colors"
-                                      >
-                                        {plat}
-                                      </div>
-                                    ))}
+                          return (
+                            <motion.div 
+                              key={asset.id}
+                              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className="border border-border/50 bg-background rounded-xl p-5 space-y-4 shadow-sm"
+                            >
+                              <div className="flex items-start justify-between gap-4 border-b border-border/30 pb-4">
+                                <div className="min-w-0 flex items-center gap-3">
+                                  <div className="p-2 bg-surface/50 rounded-lg shrink-0 text-accent"><FileCode size={16} /></div>
+                                  <div>
+                                    <div className="font-mono text-sm font-bold text-foreground/90 truncate">
+                                      {asset.name}
+                                    </div>
+                                    <div className="font-mono text-[10px] text-foreground/40 mt-1 truncate">
+                                      from <span className="text-foreground/60 font-bold">{originalAsset?.name || asset.name}</span> <span className="opacity-50">({getReleaseTag(asset.sourceReleaseId)})</span>
+                                    </div>
                                   </div>
-                                )}
+                                </div>
+                                <button
+                                  onClick={() => handleAssetToggle(asset, asset.sourceRepo, asset.sourceReleaseId)}
+                                  className="text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors p-2 shrink-0"
+                                  title="Remove asset"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1.5">
+                                    Display Filename
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={asset.name}
+                                    onChange={(e) => handleAssetPropChange(asset.id, "name", e.target.value)}
+                                    className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-accent focus:bg-background transition-colors"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1.5">
+                                    Platform Tag
+                                  </label>
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      list="platform-suggestions"
+                                      value={asset.tag || ""}
+                                      onChange={(e) => handleAssetPropChange(asset.id, "tag", e.target.value)}
+                                      className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-accent focus:bg-background transition-colors"
+                                      placeholder="e.g. macOS-x64"
+                                    />
+                                    <datalist id="platform-suggestions">
+                                      {PLATFORMS.map(plat => (
+                                        <option key={plat} value={plat} />
+                                      ))}
+                                    </datalist>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>
 
-                {/* Current toggle checkbox */}
-                <div className="pt-4 border-t border-border/50">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isCurrent}
-                      onChange={(e) => setIsCurrent(e.target.checked)}
-                      className="accent-accent cursor-pointer w-4 h-4"
+                {/* Publish Settings */}
+                <div className="bg-surface/10 border border-border/50 rounded-2xl p-6 shadow-sm flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Set as Current Release</h3>
+                    <p className="font-mono text-[10px] text-foreground/50 uppercase mt-1">Make this the primary active bundle on the public page.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCurrent(!isCurrent)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isCurrent ? 'bg-accent' : 'bg-surface border-border/50'}`}
+                    role="switch"
+                    aria-checked={isCurrent}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isCurrent ? 'translate-x-5' : 'translate-x-0'}`}
                     />
-                    <div className="font-mono text-xs">
-                      <span className="font-bold uppercase block">Set as Current Release</span>
-                      <span className="text-[10px] text-foreground/50 uppercase">Mark this custom release bundle as active on the public page</span>
-                    </div>
-                  </label>
+                  </button>
                 </div>
+              </div>
+            )}
+          </div>
 
+          {/* Right Column: Artifact Manager (Accordion) */}
+          <div className="lg:col-span-5 h-full">
+            <div className="sticky top-[100px] max-h-[calc(100vh-120px)] flex flex-col bg-surface/10 border border-border/50 rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-border/50 bg-background/50 backdrop-blur-sm z-10">
+                <h3 className="font-mono text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Box size={16} className="text-accent" /> Artifacts Manager
+                </h3>
+                <p className="font-mono text-[10px] text-foreground/50 uppercase mt-1.5">Expand an artifact to extract assets for this release.</p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {artifacts.length === 0 ? (
+                  <div className="p-8 text-center text-foreground/40 font-mono text-xs">No artifacts found.</div>
+                ) : (
+                  artifacts.map(art => {
+                    const isActive = activeArtifactIds.has(String(art.id));
+                    const artAssets = art.assets || [];
+                    const selectedCount = artAssets.filter((a: any) => selectedAssets.some(sa => String(sa.id) === String(a.id))).length;
+
+                    return (
+                      <div key={art.id} className="border border-border/50 bg-background rounded-xl overflow-hidden shadow-sm">
+                        <button
+                          onClick={() => toggleArtifactActive(String(art.id))}
+                          className={`w-full p-4 flex items-center justify-between font-mono text-left transition-colors ${isActive ? "bg-surface/50" : "hover:bg-surface/30"}`}
+                        >
+                          <div className="min-w-0 pr-4">
+                            <div className="font-bold text-sm tracking-tight truncate flex items-center gap-2">
+                              {art.tag}
+                              {selectedCount > 0 && (
+                                <span className="px-1.5 py-0.5 rounded-full bg-accent/20 text-accent text-[9px] border border-accent/20">
+                                  {selectedCount} selected
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-foreground/50 mt-1 truncate">{art.sourceRepo}</div>
+                          </div>
+                          <div className="shrink-0 text-foreground/40">
+                            {isActive ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </div>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {isActive && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 pt-0 border-t border-border/30 bg-surface/20">
+                                {artAssets.length === 0 ? (
+                                  <p className="font-mono text-[10px] text-foreground/40 italic py-2 text-center">No assets in this artifact.</p>
+                                ) : (
+                                  <div className="space-y-2 mt-4">
+                                    {artAssets.map((asset: any) => {
+                                      const isSelected = selectedAssets.some(a => String(a.id) === String(asset.id));
+                                      return (
+                                        <label 
+                                          key={asset.id} 
+                                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                            isSelected ? "bg-accent/5 border-accent/40 shadow-sm" : "bg-background border-border/40 hover:border-border/80"
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={isSelected}
+                                            onChange={() => handleAssetToggle(asset, art.sourceRepo, art.id)}
+                                          />
+                                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                            isSelected ? "bg-accent border-accent text-background" : "border-border/80 bg-surface/50"
+                                          }`}>
+                                            {isSelected && <Check size={12} strokeWidth={3} />}
+                                          </div>
+                                          <div className="font-mono text-xs text-foreground/90 truncate flex-1">
+                                            {asset.name}
+                                          </div>
+                                          {asset.size && (
+                                            <div className="text-[9px] font-mono text-foreground/40 shrink-0">
+                                              {(asset.size / (1024 * 1024)).toFixed(1)} MB
+                                            </div>
+                                          )}
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }))}
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
       </div>
     </div>
