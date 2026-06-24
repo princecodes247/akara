@@ -84,12 +84,13 @@ export class ProjectsService {
         };
       } else {
         const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
-        const assetSourceReleaseId = asset.sourceReleaseId || s.sourceReleaseId;
+        // Use the staged release ID so the public verification step succeeds
+        const publicReleaseId = s.sourceReleaseId;
         return {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
-          url: `${config.BASE_URL}/api/public/projects/${projectId}/releases/${assetSourceReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
+          url: `${config.BASE_URL}/api/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
         };
       }
     });
@@ -170,6 +171,18 @@ export class ProjectsService {
 
       if (!stage) {
         throw new Error("Asset not found or release is not public");
+      }
+
+      // Verify that the requested asset is actually part of this public release bundle
+      let isAssetInStage = false;
+      if (stage.assets && stage.assets.length > 0) {
+        isAssetInStage = stage.assets.some((a: any) => String(a.id) === String(assetId));
+      } else if (stage.releaseData?.assets) {
+        isAssetInStage = stage.releaseData.assets.some((a: any) => String(a.id) === String(assetId));
+      }
+
+      if (!isAssetInStage) {
+        throw new Error("Asset not found in this public release bundle");
       }
     }
 
