@@ -24,10 +24,10 @@ export class AuthService {
 
   getGithubAuthUrl(): string {
     if (!this.clientId) {
-
       throw new Error("GitHub Client ID not configured");
     }
-    return `https://github.com/login/oauth/authorize?client_id=${this.clientId}&scope=repo`;
+    const redirectUri = encodeURIComponent(`${config.BASE_URL}/v1/auth/github/callback`);
+    return `https://github.com/login/oauth/authorize?client_id=${this.clientId}&redirect_uri=${redirectUri}&scope=repo`;
   }
 
   async handleGithubCallback(code: string): Promise<string> {
@@ -41,6 +41,7 @@ export class AuthService {
         client_id: this.clientId,
         client_secret: this.clientSecret,
         code,
+        redirect_uri: `${config.BASE_URL}/v1/auth/github/callback`,
       }),
     });
 
