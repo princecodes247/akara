@@ -29,9 +29,8 @@ export default function ProjectSettingsPage() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const token = localStorage.getItem("akara_token");
         const res = await fetch(`${config.apiUrl}/projects/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: "include"
         });
 
         if (!res.ok) throw new Error("Failed to load project details");
@@ -68,12 +67,11 @@ export default function ProjectSettingsPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("akara_token");
       const res = await fetch(`${config.apiUrl}/projects/${id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription })
       });
@@ -106,10 +104,9 @@ export default function ProjectSettingsPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("akara_token");
       const res = await fetch(`${config.apiUrl}/projects/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: "include"
       });
 
       if (!res.ok) {

@@ -67,25 +67,19 @@ export class AuthService {
       avatarUrl: userData.avatar_url,
     };
 
-    // Find existing user or insert a new one (bypassing ORM upsert validation bug)
-    const existingUser = await db.collections.users.findOne({ githubId: String(userData.id) });
-    if (existingUser) {
-      await db.collections.users.updateOne(
-        { _id: existingUser._id },
-        {
-          $set: {
-            username: userData.login,
-            githubToken: accessToken
-          }
+    // Upsert the user using monarch-orm
+    await db.collections.users.findOneAndUpdate(
+      { githubId: String(userData.id) },
+      {
+        $set: {
+          username: userData.login,
+          githubToken: accessToken
+        },
+        $setOnInsert: {
+          githubId: String(userData.id)
         }
-      );
-    } else {
-      await db.collections.users.insertOne({
-        githubId: String(userData.id),
-        username: userData.login,
-        githubToken: accessToken
-      });
-    }
+      }
+    ).options({ upsert: true });
 
     return jwt.sign(payload, this.jwtSecret, { expiresIn: "7d" });
   }

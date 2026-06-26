@@ -23,10 +23,21 @@ export class AuthController {
       }
 
       const token = await authService.handleGithubCallback(code);
-      res.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
+      res.cookie("akara_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      res.redirect(`${config.FRONTEND_URL}/dashboard`);
     } catch (error: any) {
       next(error);
     }
+  }
+
+  logout(req: Request, res: Response) {
+    res.clearCookie("akara_token");
+    res.redirect(`${config.FRONTEND_URL}/`);
   }
 }
 

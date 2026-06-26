@@ -31,9 +31,8 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
   useEffect(() => {
     const fetchRepos = async () => {
       try {
-        const token = localStorage.getItem("akara_token");
         const res = await fetch(`${config.apiUrl}/github/repos`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: "include"
         });
         if (res.ok) {
           const data = await res.json();

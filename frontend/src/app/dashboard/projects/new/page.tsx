@@ -38,12 +38,11 @@ export default function NewProject() {
     setError("");
 
     try {
-      const token = localStorage.getItem("akara_token");
       const res = await fetch(`${config.apiUrl}/projects`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ name, targetRepo, sourceRepos })
       });

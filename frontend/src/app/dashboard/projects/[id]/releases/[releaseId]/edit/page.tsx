@@ -52,17 +52,14 @@ export default function EditReleasePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("akara_token");
-        const headers = { Authorization: `Bearer ${token}` };
-
         // Fetch project
-        const projRes = await fetch(`${config.apiUrl}/projects/${projectId}`, { headers });
+        const projRes = await fetch(`${config.apiUrl}/projects/${projectId}`, { credentials: "include" });
         if (!projRes.ok) throw new Error("Failed to fetch project");
         const projData = await projRes.json();
         setProject(projData);
 
         // Fetch all releases
-        const relRes = await fetch(`${config.apiUrl}/projects/${projectId}/releases`, { headers });
+        const relRes = await fetch(`${config.apiUrl}/projects/${projectId}/releases`, { credentials: "include" });
         if (!relRes.ok) throw new Error("Failed to fetch releases");
         const relData = await relRes.json();
         setAllReleases(relData);
@@ -172,11 +169,10 @@ export default function EditReleasePage() {
 
     setSaving(true);
     try {
-      const token = localStorage.getItem("akara_token");
       const res = await fetch(`${config.apiUrl}/projects/${projectId}/releases/${releaseId}/mapping`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({

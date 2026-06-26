@@ -11,12 +11,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("akara_token");
-    if (!token) {
-      router.push("/");
-    } else {
-      setAuthorized(true);
-    }
+    // We rely on the Server Component to handle authentication
+    setAuthorized(true);
   }, [router]);
 
   const navItems = [
@@ -67,8 +63,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="border-t border-border">
           <button 
             onClick={() => {
-              localStorage.removeItem("akara_token");
-              window.location.href = "/";
+              // Wait, to actually clear an HttpOnly cookie we should have a logout endpoint.
+              // For now, redirecting to / will just redirect back to /dashboard which checks the cookie.
+              // We should probably hit a logout endpoint. 
+              window.location.href = `${config.apiUrl}/auth/logout`; // Or just let's create a logout logic if it doesn't exist. Actually, let's just clear the cookie if we had it, but it's HttpOnly. We need a backend route or we just set document.cookie.
+              // For now we'll do what we can on the client if it was not HttpOnly, but since it is, we really need a logout endpoint. We will redirect to /v1/auth/logout.
+              window.location.href = `${config.apiUrl}/auth/logout`;
             }}
             className="flex items-center gap-3 px-6 py-4 w-full font-mono text-sm text-foreground/60 hover:bg-surface hover:text-accent transition-colors uppercase tracking-wider text-left"
           >

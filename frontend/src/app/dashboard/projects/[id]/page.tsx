@@ -23,17 +23,14 @@ export default function ProjectDetailsPage() {
 
   const fetchProjectData = async () => {
     try {
-      const token = localStorage.getItem("akara_token");
-      const headers = { Authorization: `Bearer ${token}` };
-
       // Fetch project details
-      const projRes = await fetch(`${config.apiUrl}/projects/${id}`, { headers });
+      const projRes = await fetch(`${config.apiUrl}/projects/${id}`, { credentials: "include" });
       if (!projRes.ok) throw new Error("Failed to fetch project details");
       const projData = await projRes.json();
       setProject(projData);
 
       // Fetch releases
-      const relRes = await fetch(`${config.apiUrl}/projects/${id}/releases`, { headers });
+      const relRes = await fetch(`${config.apiUrl}/projects/${id}/releases`, { credentials: "include" });
       if (!relRes.ok) throw new Error("Failed to fetch releases");
       const relData = await relRes.json();
       setReleases(relData);
@@ -58,15 +55,10 @@ export default function ProjectDetailsPage() {
 
   const handleSetCurrent = async (releaseId: number) => {
     try {
-      const token = localStorage.getItem("akara_token");
-      const headers = { 
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      };
-
       const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
         method: "PATCH",
-        headers,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isCurrent: true, status: "public" }),
       });
 
@@ -89,10 +81,9 @@ export default function ProjectDetailsPage() {
     if (!confirm("Are you sure you want to delete this custom release mapping? This will unpublish the release from GitHub if it is currently public.")) return;
 
     try {
-      const token = localStorage.getItem("akara_token");
       const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!res.ok) throw new Error("Failed to delete release mapping");

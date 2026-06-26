@@ -13,14 +13,17 @@ export interface AuthRequest extends Request {
 }
 
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized: Missing Bearer token" });
+  let token = req.cookies?.akara_token;
+  
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
   }
 
-  const token = authHeader.split(" ")[1];
   if (!token) {
-    return res.status(401).json({ error: "Unauthorized: Malformed Bearer token" });
+    return res.status(401).json({ error: "Unauthorized: Missing token" });
   }
 
   const jwtSecret = config.JWT_SECRET;
