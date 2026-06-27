@@ -76,6 +76,8 @@ export class AuthService {
           githubToken: accessToken
         },
         $setOnInsert: {
+          githubToken: accessToken,
+          username: userData.login,
           githubId: String(userData.id)
         }
       }
