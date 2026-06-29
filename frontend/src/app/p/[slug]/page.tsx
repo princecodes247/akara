@@ -1,7 +1,6 @@
 import { Metadata, ResolvingMetadata } from "next";
 import { Loader2, Download, Calendar, GitBranch, Terminal } from "lucide-react";
 import { config as appConfig } from "@/lib/config";
-import ReactMarkdown from "react-markdown";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -183,7 +182,7 @@ export default async function PublicReleasePage({ params }: Props) {
                 <span className="text-xs font-mono font-bold uppercase tracking-widest text-foreground/60 block mb-4">Release Notes</span>
                 <div className="prose prose-invert prose-p:font-mono prose-p:text-sm prose-li:font-mono prose-li:text-sm max-w-none prose-headings:font-black prose-headings:uppercase prose-a:text-accent prose-code:text-accent">
                   {currentRelease.body ? (
-                    <ReactMarkdown>{currentRelease.body}</ReactMarkdown>
+                    <div dangerouslySetInnerHTML={{ __html: currentRelease.body }} />
                   ) : (
                     <p className="italic text-foreground/50">No release notes provided.</p>
                   )}

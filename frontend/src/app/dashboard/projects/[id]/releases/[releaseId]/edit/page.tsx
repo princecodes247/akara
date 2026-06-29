@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Save, Send, Trash2, Edit2, Box, Tag, Sparkles, Check, ChevronDown, ChevronUp, FileCode, Search, MousePointerClick, RefreshCw, Eye } from "lucide-react";
 import { config } from "@/lib/config";
-import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 
 interface CustomAsset {
   id: string | number;
@@ -273,7 +273,7 @@ export default function EditReleasePage() {
                 </span>
                 <div className="prose prose-invert max-w-none font-sans text-sm text-foreground/80 flex-1">
                   <h1 className="text-3xl font-black uppercase tracking-tighter mb-6">{customTitle || "Untitled Release"}</h1>
-                  {customBody ? <ReactMarkdown>{customBody}</ReactMarkdown> : <p className="italic text-foreground/40 font-mono text-xs">No release notes written yet.</p>}
+                  {customBody ? <div dangerouslySetInnerHTML={{ __html: customBody }} /> : <p className="italic text-foreground/40 font-mono text-xs">No release notes written yet.</p>}
                 </div>
               </div>
             ) : (
@@ -301,13 +301,12 @@ export default function EditReleasePage() {
 
                     <div>
                       <label className="block font-mono text-[11px] font-bold text-foreground/60 uppercase tracking-wider mb-2">
-                        Release Notes (Markdown)
+                        Release Notes
                       </label>
-                      <textarea
-                        value={customBody}
-                        onChange={(e) => setCustomBody(e.target.value)}
+                      <RichTextEditor
+                        content={customBody}
+                        onChange={setCustomBody}
                         placeholder="Describe changes, enhancements, and bug fixes..."
-                        className="w-full bg-background border border-border/50 rounded-lg px-4 py-3 font-mono text-sm text-foreground/90 focus:border-accent focus:ring-1 focus:ring-accent outline-none resize-y min-h-[200px] transition-all shadow-inner"
                       />
                     </div>
                   </div>

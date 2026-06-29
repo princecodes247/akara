@@ -73,3 +73,19 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b;
 }
+
+/* Tiptap Editor Styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--foreground);
+  opacity: 0.3;
+  pointer-events: none;
+  height: 0;
+}
+.ProseMirror {
+  outline: none;
+}
+.ProseMirror:focus {
+  outline: none;
+}
