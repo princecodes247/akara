@@ -2,6 +2,7 @@ import { db } from "../../db";
 import { ObjectId } from "mongodb";
 import { githubService } from "../github/github.service";
 import config from "../../lib/config";
+import { assetTransferQueue } from "../queue/queue.service";
 
 export class ProjectsService {
   async getAllProjects(userId?: string) {
@@ -265,17 +266,17 @@ export class ProjectsService {
         const assetSourceRepo = asset.sourceRepo || releaseData.sourceRepo || "";
         const assetSourceReleaseId = asset.sourceReleaseId || sourceReleaseId;
 
-        // Get the source download URL (bypass public check because we are in background sync)
-        const sourceDownloadUrl = await this.getAssetDownloadUrl(
+        // Enqueue background job to transfer asset
+        await assetTransferQueue.add("transfer-asset", {
           projectId,
-          assetSourceReleaseId,
-          String(asset.id),
+          sourceReleaseId: assetSourceReleaseId,
+          assetId: String(asset.id),
+          assetName: asset.name,
           assetSourceRepo,
-          true
-        );
-
-        // Stream the asset directly from source to GitHub target using its custom name
-        await githubService.streamAssetToGitHub(token, targetRepo, newRelease.id, asset.name, sourceDownloadUrl);
+          targetRepo,
+          targetReleaseId: newRelease.id,
+          token
+        });
       }
 
       // Update staged release with the new targetReleaseId
@@ -283,7 +284,7 @@ export class ProjectsService {
         { _id: stage._id },
         { $set: { targetReleaseId: String(newRelease.id) } }
       );
-      console.log(`Successfully promoted release ${sourceReleaseId} to ${targetRepo}`);
+      console.log(`Successfully promoted release ${sourceReleaseId} to ${targetRepo} and queued asset transfers.`);
     } catch (error) {
       console.error(`Failed to promote release ${sourceReleaseId} to target repo:`, error);
     }
