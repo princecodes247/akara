@@ -12,6 +12,7 @@ interface CustomAsset {
   id: string | number;
   name: string;
   tag?: string;
+  signature?: string;
   sourceRepo: string;
   sourceReleaseId: string;
 }
@@ -150,7 +151,7 @@ export default function EditReleasePage() {
     });
   };
 
-  const handleAssetPropChange = (assetId: string | number, field: "name" | "tag", value: string) => {
+  const handleAssetPropChange = (assetId: string | number, field: "name" | "tag" | "signature", value: string) => {
     setSelectedAssets(prev =>
       prev.map(a => (String(a.id) === String(assetId) ? { ...a, [field]: value } : a))
     );
@@ -377,7 +378,7 @@ export default function EditReleasePage() {
                                 </div>
                                 <div>
                                   <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1.5">
-                                    Platform Tag
+                                    Platform Tag (OTA Updater / Installer)
                                   </label>
                                   <div className="relative">
                                     <input
@@ -386,15 +387,31 @@ export default function EditReleasePage() {
                                       value={asset.tag || ""}
                                       onChange={(e) => handleAssetPropChange(asset.id, "tag", e.target.value)}
                                       className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-accent focus:bg-background transition-colors"
-                                      placeholder="e.g. macOS-x64"
+                                      placeholder="e.g. darwin-aarch64 (for OTA) or macOS-arm64"
                                     />
                                     <datalist id="platform-suggestions">
+                                      <option value="darwin-x86_64" />
+                                      <option value="darwin-aarch64" />
+                                      <option value="windows-x86_64" />
+                                      <option value="linux-x86_64" />
                                       {PLATFORMS.map(plat => (
                                         <option key={plat} value={plat} />
                                       ))}
                                     </datalist>
                                   </div>
                                 </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-foreground/50 mb-1.5">
+                                  Cryptographic Signature (For OTA Updates)
+                                </label>
+                                <textarea
+                                  value={asset.signature || ""}
+                                  onChange={(e) => handleAssetPropChange(asset.id, "signature", e.target.value)}
+                                  placeholder="Paste the contents of the .sig file here if this is an OTA updater bundle..."
+                                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-3 py-2 font-mono text-[10px] text-foreground/80 outline-none focus:border-accent focus:bg-background transition-colors min-h-[60px] resize-y"
+                                />
                               </div>
                             </motion.div>
                           );

@@ -16,7 +16,7 @@ export default function ProjectDetailsPage() {
   const [releases, setReleases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"artifacts" | "releases">("artifacts");
+  const [activeTab, setActiveTab] = useState<"artifacts" | "releases" | "integrations">("artifacts");
   
   // Track which artifact's assets are expanded
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<string, boolean>>({});
@@ -195,7 +195,8 @@ export default function ProjectDetailsPage() {
         <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-fit border border-border/50 min-w-max">
           {[
             { id: "artifacts", label: "Artifacts", count: artifacts.length, icon: Package },
-            { id: "releases", label: "Releases", count: customReleases.length, icon: Rocket }
+            { id: "releases", label: "Releases", count: customReleases.length, icon: Rocket },
+            { id: "integrations", label: "OTA Integrations", count: 1, icon: FileCode }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -470,6 +471,55 @@ export default function ProjectDetailsPage() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          ) : (
+            /* INTEGRATIONS SCREEN */
+            <motion.div
+              key="integrations"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-end mb-6 border-b border-border/30 pb-4">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter">OTA Integrations</h2>
+                  <p className="font-mono text-xs text-foreground/50 mt-1">Connect your applications to Akara to receive Over-The-Air updates.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                <div className="border border-border/50 bg-surface/10 rounded-2xl p-6 shadow-sm">
+                  <h3 className="font-black text-lg uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <FileCode size={20} className="text-accent" /> Tauri (v1 / v2)
+                  </h3>
+                  <p className="text-sm font-mono text-foreground/60 mb-6">
+                    Tauri requires an updater endpoint that returns a specific JSON format containing the updater bundle URL and cryptographic signature. Use this endpoint in your <code className="bg-surface px-1.5 py-0.5 rounded text-accent">tauri.conf.json</code>.
+                  </p>
+
+                  <div className="bg-black/40 border border-border/30 rounded-xl p-4 overflow-x-auto">
+                    <pre className="font-mono text-xs text-foreground/80 leading-relaxed">
+{`{
+  "updater": {
+    "active": true,
+    "endpoints": [
+      "https://your-akara-domain.com/v1/public/projects/${project.slug || id}/ota/{{target}}/{{current_version}}?framework=tauri"
+    ],
+    "dialog": true,
+    "pubkey": "YOUR_PUBLIC_KEY"
+  }
+}`}
+                    </pre>
+                  </div>
+                  <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-xl flex items-start gap-3">
+                    <Sparkles className="text-accent shrink-0 mt-0.5" size={16} />
+                    <p className="text-xs font-mono text-foreground/70 leading-relaxed">
+                      <strong>Platform Tag Matching:</strong> Ensure the Platform Tags you enter in the Release Builder (e.g. <code className="text-accent">darwin-aarch64</code> or <code className="text-accent">windows-x86_64</code>) match the <code className="text-accent">{'{{target}}'}</code> placeholders Tauri sends automatically.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

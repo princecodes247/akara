@@ -1,6 +1,7 @@
 import config from '../../lib/config';
 import type { Request, Response, NextFunction } from "express";
 import { projectsService } from "../projects/projects.service";
+import semver from "semver";
 
 export class PublicController {
   getOpenApiSpec(req: Request, res: Response) {
@@ -152,6 +153,80 @@ export class PublicController {
       res.redirect(302, downloadUrl);
     } catch (error: any) {
       if (error.message.includes("not found")) {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async getOtaUpdate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, platform, currentVersion } = req.params as { id: string; platform: string; currentVersion: string };
+      
+      // We look up the project by slug or ID
+      const currentRelease = await projectsService.getCurrentRelease(id);
+      
+      if (!currentRelease) {
+        return res.status(204).send(); // No update available
+      }
+
+      // Check version using semver. CurrentRelease.tag might be "v1.2.0". currentVersion might be "1.1.0".
+      const releaseVersion = semver.coerce(currentRelease.tag)?.version;
+      const clientVersion = semver.coerce(currentVersion)?.version;
+
+      if (!releaseVersion || !clientVersion || semver.lte(releaseVersion, clientVersion)) {
+        return res.status(204).send(); // Client is up to date or version invalid
+      }
+
+      // Find the specific asset for the requested platform
+      const assets = currentRelease.assets || [];
+      const platformAsset = assets.find((a: any) => a.tag === platform);
+
+      if (!platformAsset) {
+        return res.status(204).send(); // No update for this specific platform
+      }
+
+      // TODO: Signature handling
+      const signature = platformAsset.signature || "MOCK_SIGNATURE";
+
+      // Identify framework adapter
+      const framework = (req.query.framework as string) || "tauri";
+      let responsePayload: any;
+
+      if (framework === "tauri") {
+        responsePayload = {
+          version: currentRelease.tag,
+          notes: currentRelease.body || currentRelease.title,
+          pub_date: currentRelease.publishedAt || new Date().toISOString(),
+          platforms: {
+            [platform]: {
+              signature: signature,
+              url: platformAsset.url
+            }
+          }
+        };
+      } else if (framework === "electron") {
+        // Placeholder for electron-updater or generic HTTP format
+        responsePayload = {
+          url: platformAsset.url,
+          name: currentRelease.title || currentRelease.tag,
+          notes: currentRelease.body,
+          pub_date: currentRelease.publishedAt || new Date().toISOString(),
+          version: currentRelease.tag,
+        };
+      } else {
+        // Generic JSON fallback
+        responsePayload = {
+          version: currentRelease.tag,
+          notes: currentRelease.body,
+          url: platformAsset.url,
+          signature: signature,
+        };
+      }
+
+      res.json(responsePayload);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
         return res.status(404).json({ error: error.message });
       }
       next(error);
