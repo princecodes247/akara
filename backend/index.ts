@@ -5,6 +5,7 @@ import { authRouter } from "./src/modules/auth/auth.routes";
 
 import { githubRouter } from "./src/modules/github/github.routes";
 import { publicRouter } from "./src/modules/public/public.routes";
+import { initWorkers, scheduleReleaseSync } from "./src/modules/queue/queue.service";
 
 dotenv.config();
 
@@ -28,6 +29,10 @@ async function start() {
   try {
     app.listen(port, () => {
       console.log(`Backend listening on port ${port}`);
+      
+      // Initialize background workers
+      initWorkers();
+      scheduleReleaseSync().catch(err => console.error("Failed to schedule sync:", err));
     });
   } catch (error) {
     console.error("Failed to start backend", error);
