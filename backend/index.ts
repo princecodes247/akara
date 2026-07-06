@@ -4,6 +4,7 @@ import { projectsRouter } from "./src/modules/projects/projects.routes";
 import { authRouter } from "./src/modules/auth/auth.routes";
 
 import { githubRouter } from "./src/modules/github/github.routes";
+import { webhooksRouter } from "./src/modules/github/webhooks.routes";
 import { publicRouter } from "./src/modules/public/public.routes";
 import { initWorkers, scheduleReleaseSync } from "./src/modules/queue/queue.service";
 
@@ -19,6 +20,7 @@ const app = setupApp({
         { path: "/projects", router: projectsRouter },
         { path: "/auth", router: authRouter },
         { path: "/github", router: githubRouter },
+        { path: "/webhooks", router: webhooksRouter },
         { path: "/public", router: publicRouter }
       ]
     }
