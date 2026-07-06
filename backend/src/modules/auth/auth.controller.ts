@@ -28,6 +28,7 @@ export class AuthController {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
       });
       res.redirect(`${config.FRONTEND_URL}/dashboard`);
     } catch (error: any) {
@@ -36,7 +37,7 @@ export class AuthController {
   }
 
   logout(req: Request, res: Response) {
-    res.clearCookie("akara_token");
+    res.clearCookie("akara_token", { path: "/" });
     res.redirect(`${config.FRONTEND_URL}/`);
   }
 }
