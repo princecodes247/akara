@@ -329,7 +329,7 @@ export default function ProjectDetailsPage() {
                 </div>
               )}
             </motion.div>
-          ) : (
+          ) : activeTab === "releases" ? (
             /* AKARA RELEASES SCREEN */
             <motion.div 
               key="releases"
