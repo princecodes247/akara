@@ -2,8 +2,9 @@ import { Queue, Worker, QueueEvents } from "bullmq";
 import Redis from "ioredis";
 import { projectsService } from "../projects/projects.service";
 import { githubService } from "../github/github.service";
+import config from "../../lib/config";
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const redisUrl = config.REDIS_URL;
 export const connection = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
 });

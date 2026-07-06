@@ -11,6 +11,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),
   FRONTEND_URL: z.string(),
+  REDIS_URL: z.string().default("redis://localhost:6379"),
 }).transform((env) => {
   if (!env.BASE_URL) {
     if (env.NODE_ENV !== 'production') {
