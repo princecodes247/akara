@@ -451,11 +451,54 @@ export class ProjectsService {
         await this.evictProjectCache(projectId, project.slug);
       }
 
-      return {
-        _id: result._id,
-        ...insertData,
-      };
+      return result;
     }
+  }
+
+  async syncReleaseAssets(projectId: string, sourceReleaseId: string, userId?: string) {
+    const project = await this.getProjectById(projectId, userId);
+    const sourceRepos = project.sourceRepos || [];
+
+    let token;
+    if (project.userId) {
+      const user = await db.collections.users.findById(project.userId.toString());
+      if (user) token = user.githubToken;
+    }
+    if (!token) throw new Error("No GitHub token available for sync");
+
+    const staged = await db.collections.stagedReleases.findOne({
+      projectId: new ObjectId(projectId),
+      sourceReleaseId
+    });
+
+    if (!staged) throw new Error("Staged release not found in project");
+
+    // Fetch releases for all source repos to find the updated one
+    const releasesPromises = sourceRepos.map(async (repoName: string) => {
+      try {
+        return await githubService.getRepoReleases(token, repoName);
+      } catch (error) {
+        return [];
+      }
+    });
+
+    const results: any[] = await Promise.all(releasesPromises);
+    const allReleases = results.flat();
+    const updatedRelease = allReleases.find(r => r.id.toString() === sourceReleaseId);
+
+    if (!updatedRelease) {
+      throw new Error("Release no longer found on GitHub source repositories");
+    }
+
+    // Update the staged release with fresh release data
+    await db.collections.stagedReleases.updateOne(
+      { _id: staged._id },
+      { $set: { releaseData: updatedRelease } }
+    );
+
+    await this.evictProjectCache(projectId, project.slug);
+
+    return updatedRelease;
   }
 
   async createProject(data: { name: string; sourceRepos: string[]; targetRepo?: string | null; userId?: string }) {

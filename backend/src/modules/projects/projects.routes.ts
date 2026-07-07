@@ -13,4 +13,5 @@ projectsRouter.delete("/:id", projectsController.deleteProject);
 projectsRouter.get("/:id/releases", projectsController.getProjectReleases);
 projectsRouter.patch("/:id/releases/:releaseId/mapping", projectsController.updateReleaseMapping);
 projectsRouter.delete("/:id/releases/:releaseId/mapping", projectsController.deleteReleaseMapping);
+projectsRouter.post("/:id/releases/:releaseId/sync", projectsController.syncReleaseAssets);
 projectsRouter.post("/", projectsController.createProject);

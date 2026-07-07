@@ -91,6 +91,20 @@ export class ProjectsController {
     }
   }
 
+  async syncReleaseAssets(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id, releaseId } = req.params as { id: string; releaseId: string };
+      const userId = req.user?.userId;
+
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const updatedRelease = await projectsService.syncReleaseAssets(id, releaseId, userId);
+      res.json(updatedRelease);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async createProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { name, sourceRepos, targetRepo } = req.body;

@@ -214,6 +214,33 @@ export default function EditReleasePage() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`${config.apiUrl}/projects/${projectId}/releases/${releaseId}/sync`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to sync release assets");
+      
+      const updatedRelease = await res.json();
+      setCurrentRelease(updatedRelease);
+      
+      // Update the allReleases list with the updated release
+      setAllReleases(prev => prev.map(r => r.id.toString() === releaseId.toString() ? { ...r, ...updatedRelease } : r));
+
+      // Refresh custom assets list if needed by checking the updated release assets array 
+      // (Optionally could just reload the page or let the user click save again)
+      alert("Assets synced successfully from GitHub!");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading || !currentRelease) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
@@ -259,6 +286,15 @@ export default function EditReleasePage() {
           >
             {previewMode ? <Edit2 size={14} /> : <Eye size={14} />}
             {previewMode ? "Editor Mode" : "Preview"}
+          </button>
+
+          <button
+            disabled={syncing}
+            onClick={handleSync}
+            className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border/50 rounded-lg px-4 py-2 hover:bg-surface/50 transition-colors shadow-sm"
+          >
+            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+            Sync
           </button>
 
           <button
