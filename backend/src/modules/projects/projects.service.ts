@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { githubService } from "../github/github.service";
 import config from "../../lib/config";
 import { assetTransferQueue } from "../queue/queue.service";
+import { cache, cached } from "../../lib/cache";
 
 export class ProjectsService {
   async getAllProjects(userId?: string) {
@@ -110,6 +111,15 @@ export class ProjectsService {
       status: s.status,
       isCurrent: s.isCurrent,
     };
+  }
+
+  async evictProjectCache(projectId: string, slug?: string) {
+    await cache.del(`project:public-data:${projectId}`);
+    await cache.del(`project:current-release:${projectId}`);
+    if (slug) {
+      await cache.del(`project:public-data:${slug}`);
+      await cache.del(`project:current-release:${slug}`);
+    }
   }
 
   async getPublicProjectData(id: string) {
@@ -338,6 +348,12 @@ export class ProjectsService {
 
     // Delete the staged release record from the database
     await db.collections.stagedReleases.deleteOne({ _id: stage._id });
+
+    // Evict cache
+    const project = await db.collections.projects.findOne({ _id: new ObjectId(projectId) });
+    if (project) {
+      await this.evictProjectCache(projectId, project.slug);
+    }
   }
 
   async updateReleaseMapping(projectId: string, sourceReleaseId: string, data: {
@@ -399,6 +415,12 @@ export class ProjectsService {
         }
       }
 
+      // Evict cache
+      const project = await db.collections.projects.findOne({ _id: new ObjectId(projectId) });
+      if (project) {
+        await this.evictProjectCache(projectId, project.slug);
+      }
+
       return { ...existing, ...updateData };
     } else {
       const insertData: any = {
@@ -421,6 +443,12 @@ export class ProjectsService {
 
       if (insertData.status === "public" && token) {
         this.promoteReleaseToTarget(projectId, sourceReleaseId, token).catch(console.error);
+      }
+
+      // Evict cache
+      const project = await db.collections.projects.findOne({ _id: new ObjectId(projectId) });
+      if (project) {
+        await this.evictProjectCache(projectId, project.slug);
       }
 
       return {
@@ -517,6 +545,12 @@ export class ProjectsService {
       throw new Error("Project not found");
     }
 
+    // Resolve project to get current slug for cache eviction
+    const project = await db.collections.projects.findOne({ _id: new ObjectId(id) });
+    if (project) {
+      await this.evictProjectCache(id, project.slug);
+    }
+
     return { success: true };
   }
 
@@ -533,6 +567,9 @@ export class ProjectsService {
     if (result.deletedCount === 0) {
       throw new Error("Project not found");
     }
+
+    // Evict cache
+    await this.evictProjectCache(id);
 
     // Delete stagedReleases associated with this project
     await db.collections.stagedReleases.deleteMany({ projectId });

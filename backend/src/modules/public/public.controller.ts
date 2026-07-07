@@ -2,6 +2,23 @@ import config from '../../lib/config';
 import type { Request, Response, NextFunction } from "express";
 import { projectsService } from "../projects/projects.service";
 import semver from "semver";
+import { cached } from "../../lib/cache";
+
+const getCachedPublicProjectData = cached(
+  (id: string) => projectsService.getPublicProjectData(id),
+  {
+    key: (id: string) => `project:public-data:${id}`,
+    ttlSeconds: 3600 // 1 hour TTL
+  }
+);
+
+const getCachedCurrentRelease = cached(
+  (id: string) => projectsService.getCurrentRelease(id),
+  {
+    key: (id: string) => `project:current-release:${id}`,
+    ttlSeconds: 3600 // 1 hour TTL
+  }
+);
 
 export class PublicController {
   getOpenApiSpec(req: Request, res: Response) {
@@ -116,7 +133,7 @@ export class PublicController {
   async getPublicProject(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
-      const data = await projectsService.getPublicProjectData(id);
+      const data = await getCachedPublicProjectData(id);
       res.json(data);
     } catch (error: any) {
       if (error.message === "Project not found") {
@@ -129,7 +146,7 @@ export class PublicController {
   async getCurrentRelease(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
-      const current = await projectsService.getCurrentRelease(id);
+      const current = await getCachedCurrentRelease(id);
       if (!current) {
         return res.status(404).json({ error: "No current release found for this project." });
       }
@@ -164,7 +181,7 @@ export class PublicController {
       const { id, platform, currentVersion } = req.params as { id: string; platform: string; currentVersion: string };
       
       // We look up the project by slug or ID
-      const currentRelease = await projectsService.getCurrentRelease(id);
+      const currentRelease = await getCachedCurrentRelease(id);
       
       if (!currentRelease) {
         return res.status(204).send(); // No update available

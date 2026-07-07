@@ -22,11 +22,11 @@ export class GithubService {
   }
 
   async getRepoReleases(githubToken: string | undefined, repoFullName: string) {
+    const token = githubToken || process.env.GITHUB_TOKEN;
     const headers: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
     };
     
-    const token = githubToken || process.env.GITHUB_TOKEN;
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
