@@ -31,7 +31,7 @@ async function start() {
   try {
     app.listen(port, () => {
       console.log(`Backend listening on port ${port}`);
-      
+
       // Initialize background workers
       initWorkers();
       scheduleReleaseSync().catch(err => console.error("Failed to schedule sync:", err));

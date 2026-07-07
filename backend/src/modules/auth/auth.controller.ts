@@ -30,7 +30,7 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: "/",
       });
-      res.redirect(`${config.FRONTEND_URL}/dashboard`);
+      res.redirect(`${config.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (error: any) {
       next(error);
     }
