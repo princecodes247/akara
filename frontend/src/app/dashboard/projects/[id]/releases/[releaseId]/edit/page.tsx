@@ -70,7 +70,24 @@ export default function EditReleasePage() {
         if (rel) {
           setCurrentRelease(rel);
           setCustomTitle(rel.customTitle || rel.title || rel.name || rel.tag || "");
-          setCustomBody(rel.customBody !== undefined ? rel.customBody : (rel.body || ""));
+          let initialBody = "";
+          if (rel.customBody !== undefined) {
+            initialBody = rel.customBody;
+          } else if (rel.body) {
+            initialBody = rel.body;
+          } else {
+            // Find the previous release's description/body
+            const sortedRels = [...relData].sort((a: any, b: any) => {
+              const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+              const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+              return dateB - dateA;
+            });
+            const previousRelease = sortedRels.find((r: any) => String(r.id) !== releaseId && (r.customBody || r.body));
+            if (previousRelease) {
+              initialBody = previousRelease.customBody || previousRelease.body || "";
+            }
+          }
+          setCustomBody(initialBody);
           const assets = rel.customAssets || [];
           setSelectedAssets(assets);
           setIsCurrent(rel.isCurrent || false);
@@ -206,7 +223,11 @@ export default function EditReleasePage() {
     );
   }
 
-  const artifacts = allReleases;
+  const artifacts = [...allReleases].sort((a: any, b: any) => {
+    const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+    const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    return dateB - dateA;
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
