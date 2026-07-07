@@ -95,8 +95,14 @@ export default async function PublicReleasePage({ params }: Props) {
   const explicitCurrent = releases.find((r: any) => r.isCurrent);
   const currentRelease = explicitCurrent || (releases.length > 0 ? releases[0] : null);
   
-  // Previous releases are all other releases
-  const previousReleases = releases.filter((r: any) => r.id !== currentRelease?.id);
+  // Previous releases are all other releases, sorted by publication date descending
+  const previousReleases = releases
+    .filter((r: any) => r.id !== currentRelease?.id)
+    .sort((a: any, b: any) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center">

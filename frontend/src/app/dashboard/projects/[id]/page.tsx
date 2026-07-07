@@ -106,15 +106,25 @@ export default function ProjectDetailsPage() {
       alert(err.message);
     }
   };
-
+console.log({releases})
   // Filter lists based on new Core UX definitions
-  // 1. Artifacts: Raw GitHub releases
-  const artifacts = releases;
+  // 1. Artifacts: Raw GitHub releases, sorted newest first
+  const artifacts = [...releases].sort((a: any, b: any) => {
+    const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+    const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    return dateB - dateA;
+  });
 
-  // 2. Akara Releases: Curated releases with customTitle, customBody, or customAssets defined, or published
-  const customReleases = releases.filter(
-    (r: any) => r.customTitle !== undefined || r.customBody !== undefined || r.customAssets !== undefined || r.isCurrent
-  );
+  // 2. Akara Releases: Curated releases with customTitle, customBody, or customAssets defined, or published, sorted newest first
+  const customReleases = releases
+    .filter(
+      (r: any) => r.customTitle !== undefined || r.customBody !== undefined || r.customAssets !== undefined || r.isCurrent
+    )
+    .sort((a: any, b: any) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
   if (loading) {
     return (
