@@ -249,6 +249,65 @@ export class PublicController {
       next(error);
     }
   }
+
+  async getFrameworkManifest(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, framework } = req.params as { id: string; framework: string };
+      
+      const currentRelease = await getCachedCurrentRelease(id);
+      if (!currentRelease) {
+        return res.status(404).json({ error: "No current release found." });
+      }
+
+      if (framework.toLowerCase() === "expo") {
+        const platform = req.headers["expo-platform"] as string;
+        const runtimeVersion = req.headers["expo-runtime-version"] as string;
+
+        if (!platform) {
+          return res.status(400).json({ error: "Missing 'expo-platform' header." });
+        }
+        if (!runtimeVersion) {
+          return res.status(400).json({ error: "Missing 'expo-runtime-version' header." });
+        }
+
+        const assets = currentRelease.assets || [];
+        const platformAsset = assets.find((a: any) => a.tag === platform);
+
+        if (!platformAsset) {
+          return res.status(404).json({ error: `No asset found for platform '${platform}'.` });
+        }
+
+        // Return Expo Protocol Version 0 manifest
+        const responsePayload = {
+          id: currentRelease.id || currentRelease._id || new Date().getTime().toString(),
+          createdAt: currentRelease.publishedAt || new Date().toISOString(),
+          runtimeVersion: runtimeVersion,
+          launchAsset: {
+            hash: platformAsset.hash || "UNVERIFIED",
+            key: "bundle",
+            contentType: "application/javascript",
+            url: platformAsset.url
+          },
+          assets: [],
+          metadata: {},
+          extra: {
+            expoClient: {
+              version: currentRelease.tag
+            }
+          }
+        };
+
+        return res.json(responsePayload);
+      }
+
+      return res.status(400).json({ error: `Framework '${framework}' not supported for dynamic manifests.` });
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const publicController = new PublicController();
