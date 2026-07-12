@@ -78,8 +78,8 @@ export default function EditReleasePage() {
           } else {
             // Find the previous release's description/body
             const sortedRels = [...relData].sort((a: any, b: any) => {
-              const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-              const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
               return dateB - dateA;
             });
             const previousRelease = sortedRels.find((r: any) => String(r.id) !== releaseId && (r.customBody || r.body));
@@ -258,8 +258,8 @@ export default function EditReleasePage() {
   }
 
   const artifacts = [...allReleases].sort((a: any, b: any) => {
-    const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-    const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
     return dateB - dateA;
   });
 

@@ -64,10 +64,10 @@ export class ProjectsService {
       };
     });
 
-    // Sort by publishedAt descending
+    // Sort by createdAt descending (fallback to publishedAt)
     allReleases.sort((a, b) => {
-      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
       return dateB - dateA;
     });
 
@@ -134,8 +134,8 @@ export class ProjectsService {
     const allReleases = publicStaged.map((s: any) => this.formatPublicRelease(project, s, project._id.toString()));
 
     allReleases.sort((a: any, b: any) => {
-      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
       return dateB - dateA;
     });
 
@@ -167,8 +167,8 @@ export class ProjectsService {
     // Fallback: if none is explicitly marked current, use the newest one by publication date
     if (!current) {
       staged.sort((a: any, b: any) => {
-        const dateA = a.releaseData?.publishedAt ? new Date(a.releaseData.publishedAt).getTime() : 0;
-        const dateB = b.releaseData?.publishedAt ? new Date(b.releaseData.publishedAt).getTime() : 0;
+        const dateA = a.releaseData?.createdAt ? new Date(a.releaseData.createdAt).getTime() : (a.releaseData?.publishedAt ? new Date(a.releaseData.publishedAt).getTime() : 0);
+        const dateB = b.releaseData?.createdAt ? new Date(b.releaseData.createdAt).getTime() : (b.releaseData?.publishedAt ? new Date(b.releaseData.publishedAt).getTime() : 0);
         return dateB - dateA;
       });
       current = staged[0];

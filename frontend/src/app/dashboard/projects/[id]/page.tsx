@@ -125,8 +125,8 @@ console.log({releases})
   // Filter lists based on new Core UX definitions
   // 1. Artifacts: Raw GitHub releases, sorted newest first
   const artifacts = [...releases].sort((a: any, b: any) => {
-    const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-    const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
     return dateB - dateA;
   });
 
@@ -136,8 +136,8 @@ console.log({releases})
       (r: any) => r.customTitle !== undefined || r.customBody !== undefined || r.customAssets !== undefined || r.isCurrent
     )
     .sort((a: any, b: any) => {
-      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
       return dateB - dateA;
     });
 

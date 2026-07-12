@@ -26,7 +26,7 @@ export class GithubService {
     const headers: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
     };
-    
+
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -48,6 +48,7 @@ export class GithubService {
       draft: release.draft,
       prerelease: release.prerelease,
       publishedAt: release.published_at,
+      createdAt: release?.created_at || new Date().toISOString(),
       url: release.html_url,
       assets: release.assets.map((asset: any) => ({
         id: asset.id,
@@ -62,7 +63,7 @@ export class GithubService {
     const headers: Record<string, string> = {
       Accept: "application/octet-stream",
     };
-    
+
     const token = githubToken || process.env.GITHUB_TOKEN;
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -105,16 +106,16 @@ export class GithubService {
     if (parts.length !== 2) {
       throw new Error("Invalid repository format. Expected owner/name");
     }
-    
+
     const owner = parts[0];
     const name = parts[1];
-    
+
     // Determine if creating under personal account or an organization
     const isOrg = owner !== username;
-    const url = isOrg 
+    const url = isOrg
       ? `https://api.github.com/orgs/${owner}/repos`
       : `https://api.github.com/user/repos`;
-      
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -206,7 +207,7 @@ export class GithubService {
 
     // 2. Stream to GitHub Upload API
     const uploadUrl = `https://uploads.github.com/repos/${targetRepo}/releases/${releaseId}/assets?name=${encodeURIComponent(assetName)}`;
-    
+
     const headers: Record<string, string> = {
       Authorization: `Bearer ${githubToken}`,
       Accept: "application/vnd.github.v3+json",
@@ -222,7 +223,7 @@ export class GithubService {
       headers,
       body: sourceResponse.body,
       // @ts-ignore - duplex is required for streaming body in fetch, but TS types might not have it
-      duplex: "half", 
+      duplex: "half",
     });
 
     if (!uploadResponse.ok) {

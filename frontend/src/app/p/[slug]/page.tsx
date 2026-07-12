@@ -99,8 +99,8 @@ export default async function PublicReleasePage({ params }: Props) {
   const previousReleases = releases
     .filter((r: any) => r.id !== currentRelease?.id)
     .sort((a: any, b: any) => {
-      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
-      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
       return dateB - dateA;
     });
 
