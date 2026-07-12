@@ -71,6 +71,14 @@ export default function ProjectDetailsPage() {
         }
         return { ...r, isCurrent: false };
       }));
+      
+      // Revalidate frontend cache
+      await fetch(`/api/revalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: project.slug || id })
+      });
+
       alert("Release set as current successfully!");
     } catch (err: any) {
       alert(err.message);
@@ -102,6 +110,13 @@ export default function ProjectDetailsPage() {
         }
         return r;
       }));
+
+      // Revalidate frontend cache
+      await fetch(`/api/revalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: project.slug || id })
+      });
     } catch (err: any) {
       alert(err.message);
     }
@@ -405,13 +420,13 @@ console.log({releases})
                               <>
                                 <span className="text-foreground/20">|</span>
                                 <a
-                                  href={`/p/${id}`}
+                                  href={`/p/${project.slug || id}/releases/${rel.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 normal-case font-bold"
                                 >
                                   <Globe size={14} />
-                                  View Public Page
+                                  View Release Page
                                 </a>
                               </>
                             )}

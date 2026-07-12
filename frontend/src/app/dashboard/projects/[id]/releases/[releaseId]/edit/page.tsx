@@ -205,6 +205,13 @@ export default function EditReleasePage() {
 
       if (!res.ok) throw new Error("Failed to save release mapping");
       
+      // Revalidate frontend cache
+      await fetch(`/api/revalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: project.slug || projectId })
+      });
+
       alert(status === "public" ? "Release published successfully!" : "Draft saved successfully!");
       router.push(`/dashboard/projects/${projectId}`);
     } catch (err: any) {

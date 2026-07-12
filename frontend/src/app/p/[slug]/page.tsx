@@ -9,7 +9,7 @@ type Props = {
 async function getProjectData(slug: string) {
   const res = await fetch(`${appConfig.apiUrl}/public/projects/${slug}`, {
     // Next.js fetch caching options. We use next: { revalidate } to ensure it updates reasonably fast
-    next: { revalidate: 60 } // Revalidate every minute
+    next: { revalidate: 60, tags: [`project-${slug}`] }
   });
   if (!res.ok) {
     throw new Error("Project not found or an error occurred.");
@@ -206,7 +206,7 @@ export default async function PublicReleasePage({ params }: Props) {
         {previousReleases.length > 0 && (
           <div>
             <h2 className="text-sm font-mono font-bold text-foreground/60 uppercase tracking-widest mb-6 border-l-2 border-border pl-3">
-              Previous Releases
+              Other Releases
             </h2>
             
             <div className="flex flex-col gap-4">
