@@ -53,6 +53,7 @@ export class GithubService {
       assets: release.assets.map((asset: any) => ({
         id: asset.id,
         name: asset.name,
+        size: asset.size,
         downloadCount: asset.download_count,
         url: asset.browser_download_url,
       })),

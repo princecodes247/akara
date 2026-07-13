@@ -2,6 +2,14 @@ import { Metadata, ResolvingMetadata } from "next";
 import { Loader2, Download, Calendar, GitBranch, Terminal } from "lucide-react";
 import { config as appConfig } from "@/lib/config";
 
+function formatBytes(bytes: number, decimals = 1) {
+  if (!+bytes) return '0 B';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -170,11 +178,18 @@ export default async function PublicReleasePage({ params }: Props) {
                           <Download size={16} className="text-foreground/50 group-hover:text-accent shrink-0" />
                           <div className="flex flex-col items-start gap-1 min-w-0 w-full">
                             <span className="font-bold truncate w-full">{asset.name}</span>
-                            {asset.tag && (
-                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-surface text-accent/80 border border-border uppercase">
-                                {asset.tag}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {asset.size !== undefined && (
+                                <span className="text-[10px] font-mono text-foreground/50 uppercase">
+                                  {formatBytes(asset.size)}
+                                </span>
+                              )}
+                              {asset.tag && (
+                                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-surface text-accent/80 border border-border uppercase">
+                                  {asset.tag}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </a>
@@ -239,6 +254,11 @@ export default async function PublicReleasePage({ params }: Props) {
                         >
                           <Download size={10} />
                           <span className="font-bold">{asset.name}</span>
+                          {asset.size !== undefined && (
+                            <span className="text-[9px] font-mono text-foreground/50 uppercase ml-1">
+                              {formatBytes(asset.size)}
+                            </span>
+                          )}
                           {asset.tag && (
                             <span className="text-[8px] font-bold px-1 bg-surface text-accent/80 border border-border/50 uppercase">
                               {asset.tag}
