@@ -129,7 +129,7 @@ export default async function PublicReleasePage({ params }: Props) {
               Current Release
             </h2>
             
-            <div className="border border-border bg-surface/10 p-5 sm:p-8 md:p-12 brutalist-shadow">
+            <div className="border border-border bg-surface/10 p-5 sm:p-8 md:p-12">
               <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
@@ -164,7 +164,7 @@ export default async function PublicReleasePage({ params }: Props) {
                       <a 
                         key={asset.id} 
                         href={asset.url}
-                        className="flex items-center justify-between gap-4 md:gap-6 border border-border bg-background hover:border-accent hover:text-accent transition-all px-4 py-3 font-mono text-sm group w-full md:w-auto"
+                        className="flex items-center justify-between gap-4 md:gap-6 border border-border bg-background hover:border-accent hover:text-accent transition-all px-4 py-3 font-mono text-sm group w-full md:w-auto brutalist-shadow"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <Download size={16} className="text-foreground/50 group-hover:text-accent shrink-0" />
