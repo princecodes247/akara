@@ -420,7 +420,7 @@ console.log({releases})
                               <>
                                 <span className="text-foreground/20">|</span>
                                 <a
-                                  href={`/p/${project.slug || id}/releases/${rel.id}`}
+                                  href={`/p/${project.slug || id}${rel.isCurrent ? '' : `/releases/${rel.id}`}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 normal-case font-bold"
