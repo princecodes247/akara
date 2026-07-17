@@ -41,6 +41,7 @@ const stagedReleaseSchema = createSchema("stagedReleases", {
   targetReleaseId: string().nullable(),
   isCurrent: boolean().default(false),
   releaseData: mixed().optional(),
+  downloadCounts: mixed().optional(),
 });
 
 // Define schemas

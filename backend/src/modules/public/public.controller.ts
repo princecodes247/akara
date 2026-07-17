@@ -166,6 +166,9 @@ export class PublicController {
 
       const downloadUrl = await projectsService.getAssetDownloadUrl(id, releaseId, assetId, repo);
 
+      // Record the download asynchronously
+      projectsService.recordAssetDownload(id, releaseId, assetId).catch(console.error);
+
       // Redirect the user to the presigned S3 URL
       res.redirect(302, downloadUrl);
     } catch (error: any) {

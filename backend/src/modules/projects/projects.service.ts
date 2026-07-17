@@ -61,6 +61,7 @@ export class ProjectsService {
         customTitle: stage?.title,
         customBody: stage?.body,
         customAssets: stage?.assets,
+        downloadCounts: stage?.downloadCounts || {},
       };
     });
 
@@ -83,12 +84,14 @@ export class ProjectsService {
 
     // Rewrite asset URLs based on targetRepo or proxy
     const rewrittenAssets = assetsList.map((asset: any) => {
+      const downloadCount = s.downloadCounts?.[asset.id] || 0;
       if (project.targetRepo) {
         return {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
-          url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`
+          url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`,
+          downloadCount
         };
       } else {
         const assetSourceRepo = asset.sourceRepo || r.sourceRepo || "";
@@ -98,7 +101,8 @@ export class ProjectsService {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
-          url: `${config.BASE_URL}/v1/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`
+          url: `${config.BASE_URL}/v1/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`,
+          downloadCount
         };
       }
     });
@@ -228,6 +232,13 @@ export class ProjectsService {
       }
     }
     return await githubService.getAssetDownloadUrl(repoFullName, assetId, token);
+  }
+
+  async recordAssetDownload(projectId: string, releaseId: string, assetId: string) {
+    await db.collections.stagedReleases.updateOne(
+      { projectId: new ObjectId(projectId), sourceReleaseId: releaseId },
+      { $inc: { [`downloadCounts.${assetId}`]: 1 } }
+    );
   }
 
   async promoteReleaseToTarget(projectId: string, sourceReleaseId: string, token: string) {

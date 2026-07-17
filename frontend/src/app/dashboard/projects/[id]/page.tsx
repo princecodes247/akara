@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Download, ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -484,9 +484,17 @@ console.log({releases})
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[9px] text-foreground/40 font-normal truncate">
-                                  src: {asset.sourceRepo} @ {asset.sourceReleaseId}
-                                </span>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-[9px] text-foreground/40 font-normal truncate">
+                                    src: {asset.sourceRepo} @ {asset.sourceReleaseId}
+                                  </span>
+                                  {rel.downloadCounts && rel.downloadCounts[asset.id] !== undefined && (
+                                    <div className="flex items-center gap-1 text-[10px] text-accent/80 font-mono font-bold bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
+                                      <Download size={10} />
+                                      {rel.downloadCounts[asset.id]}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
