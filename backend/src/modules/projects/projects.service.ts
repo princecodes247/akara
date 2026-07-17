@@ -129,6 +129,10 @@ export class ProjectsService {
   async getPublicProjectData(id: string) {
     const project = await this.getProjectById(id);
 
+    if (project.isPublic === false) {
+      throw new Error("Project not found");
+    }
+
     // Fetch staged releases for this project from the database using the resolved project._id
     const staged = await db.collections.stagedReleases.find({ projectId: project._id });
 
@@ -156,6 +160,10 @@ export class ProjectsService {
 
   async getCurrentRelease(id: string) {
     const project = await this.getProjectById(id);
+
+    if (project.isPublic === false) {
+      throw new Error("Project not found");
+    }
 
     // Fetch staged releases for this project from the database using the resolved project._id
     const staged = await db.collections.stagedReleases.find({
@@ -185,6 +193,11 @@ export class ProjectsService {
     let stage: any;
 
     if (!bypassPublicCheck) {
+      const project = await this.getProjectById(projectId);
+      if (project.isPublic === false) {
+        throw new Error("Project not found");
+      }
+
       // 1. Verify the staged release exists and is public
       stage = await db.collections.stagedReleases.findOne({
         projectId: new ObjectId(projectId),
@@ -555,11 +568,15 @@ export class ProjectsService {
     };
   }
 
-  async updateProject(id: string, data: { name?: string; sourceRepos?: string[]; targetRepo?: string | null; slug?: string; seoTitle?: string; seoDescription?: string }, userId?: string) {
+  async updateProject(id: string, data: { name?: string; sourceRepos?: string[]; targetRepo?: string | null; slug?: string; seoTitle?: string; seoDescription?: string; isPublic?: boolean }, userId?: string) {
     const updateObj: any = {};
 
     if (data.name !== undefined) {
       updateObj.name = data.name;
+    }
+
+    if (data.isPublic !== undefined) {
+      updateObj.isPublic = data.isPublic;
     }
 
     if (data.sourceRepos !== undefined) {

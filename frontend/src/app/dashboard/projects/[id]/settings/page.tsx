@@ -18,6 +18,7 @@ export default function ProjectSettingsPage() {
   const [seoDescription, setSeoDescription] = useState("");
   const [targetRepo, setTargetRepo] = useState("");
   const [sourceRepos, setSourceRepos] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(true);
   const [originalName, setOriginalName] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export default function ProjectSettingsPage() {
         setSlug(data.slug || "");
         setSeoTitle(data.seoTitle || "");
         setSeoDescription(data.seoDescription || "");
+        setIsPublic(data.isPublic ?? true);
         setOriginalName(data.name);
         setSourceRepos(data.sourceRepos || []);
         setTargetRepo(data.targetRepo || "");
@@ -73,7 +75,7 @@ export default function ProjectSettingsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription })
+        body: JSON.stringify({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription, isPublic })
       });
 
       if (!res.ok) {
@@ -194,6 +196,23 @@ export default function ProjectSettingsPage() {
                 placeholder="e.g. core-engine"
                 className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors"
               />
+            </div>
+
+            <div className="border-t border-border pt-8">
+              <h3 className="text-sm font-bold font-mono text-foreground mb-4 uppercase tracking-wider border-l-2 border-accent pl-3">Visibility & Access</h3>
+              <div className="flex items-center justify-between bg-surface/30 border border-border p-4 rounded-lg">
+                <div>
+                  <h4 className="font-bold font-mono text-sm uppercase tracking-wider text-foreground">Public Access</h4>
+                  <p className="text-xs font-mono text-foreground/60 mt-1">If disabled, public pages, OTA updates, and asset downloads will be blocked.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(!isPublic)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPublic ? 'bg-accent' : 'bg-surface border border-border'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublic ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
             </div>
 
             <div className="border-t border-border pt-8">

@@ -143,7 +143,7 @@ export class ProjectsController {
   async updateProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params as { id: string };
-      const { name, sourceRepos, targetRepo, slug, seoTitle, seoDescription } = req.body;
+      const { name, sourceRepos, targetRepo, slug, seoTitle, seoDescription, isPublic } = req.body;
       const username = req.user?.username;
       const githubToken = req.user?.githubToken;
       const userId = req.user?.userId;
@@ -163,7 +163,7 @@ export class ProjectsController {
         }
       }
 
-      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo, slug, seoTitle, seoDescription }, userId);
+      await projectsService.updateProject(id, { name, sourceRepos, targetRepo: normalizedTargetRepo, slug, seoTitle, seoDescription, isPublic }, userId);
       res.json({ success: true });
     } catch (error: any) {
       if (error.message === "Project not found") {
