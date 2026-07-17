@@ -18,7 +18,7 @@ export class ProjectsService {
     } else {
       query = { slug: slugOrId };
     }
-    
+
     if (userId) {
       query.userId = new ObjectId(userId);
     }
@@ -506,13 +506,23 @@ export class ProjectsService {
       throw new Error("Missing required fields");
     }
 
-    let finalSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-    let slugExists = await db.collections.projects.findOne({ slug: finalSlug });
-    let counter = 1;
-    while (slugExists) {
-      finalSlug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}-${counter}`;
-      slugExists = await db.collections.projects.findOne({ slug: finalSlug });
-      counter++;
+    const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    let finalSlug = baseSlug;
+
+    const existingProjects = await db.collections.projects.find({
+      slug: { $regex: `^${baseSlug}(?:-[0-9]+)?$` }
+    }).select({
+      slug: true
+    });
+
+    if (existingProjects.some((p) => p.slug === baseSlug)) {
+      const suffixes = existingProjects.map((p) => {
+        if (!p.slug) return 0;
+        const match = p.slug.match(new RegExp(`^${baseSlug}-([0-9]+)$`));
+        return match && match[1] ? parseInt(match[1], 10) : 0;
+      });
+      const maxSuffix = Math.max(0, ...suffixes);
+      finalSlug = `${baseSlug}-${maxSuffix + 1}`;
     }
 
     const insertData: any = {
@@ -553,10 +563,10 @@ export class ProjectsService {
       if (!formattedSlug) {
         throw new Error("Invalid slug");
       }
-      
-      const existingWithSlug = await db.collections.projects.findOne({ 
+
+      const existingWithSlug = await db.collections.projects.findOne({
         slug: formattedSlug,
-        _id: { $ne: new ObjectId(id) } 
+        _id: { $ne: new ObjectId(id) }
       });
 
       if (existingWithSlug) {
