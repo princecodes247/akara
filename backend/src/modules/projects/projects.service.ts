@@ -178,9 +178,11 @@ export class ProjectsService {
   }
 
   async getAssetDownloadUrl(projectId: string, releaseId: string, assetId: string, repoQueryParam?: string, bypassPublicCheck = false) {
+    let stage: any;
+
     if (!bypassPublicCheck) {
       // 1. Verify the staged release exists and is public
-      const stage = await db.collections.stagedReleases.findOne({
+      stage = await db.collections.stagedReleases.findOne({
         projectId: new ObjectId(projectId),
         sourceReleaseId: releaseId,
         status: "public"
@@ -201,14 +203,15 @@ export class ProjectsService {
       if (!isAssetInStage) {
         throw new Error("Asset not found in this public release bundle");
       }
+    } else {
+      // 2. Get the repo name. Either from the cached release data, or fallback to query param
+      // If we bypass validation, the stage may not exist or not be public, so we fetch it directly if present
+      stage = await db.collections.stagedReleases.findOne({
+        projectId: new ObjectId(projectId),
+        sourceReleaseId: releaseId,
+      });
     }
 
-    // 2. Get the repo name. Either from the cached release data, or fallback to query param
-    // If we bypass validation, the stage may not exist or not be public, so we fetch it directly if present
-    const stage = await db.collections.stagedReleases.findOne({
-      projectId: new ObjectId(projectId),
-      sourceReleaseId: releaseId,
-    });
     const repoFullName = repoQueryParam || (stage?.releaseData as any)?.sourceRepo;
 
     if (!repoFullName) {
@@ -369,12 +372,10 @@ export class ProjectsService {
     await this.getProjectById(projectId, userId);
     if (data.isCurrent) {
       // If setting to current, unset isCurrent on all other staged releases for this project
-      const allStaged = await db.collections.stagedReleases.find({ projectId: new ObjectId(projectId) });
-      for (const stage of allStaged) {
-        if (stage.isCurrent && stage.sourceReleaseId !== sourceReleaseId) {
-          await db.collections.stagedReleases.updateOne({ _id: stage._id }, { $set: { isCurrent: false } });
-        }
-      }
+      await db.collections.stagedReleases.updateMany(
+        { projectId: new ObjectId(projectId), isCurrent: true, sourceReleaseId: { $ne: sourceReleaseId } },
+        { $set: { isCurrent: false } }
+      );
     }
 
     // Resolve token: use provided token, or fall back to retrieving from the project's owner
