@@ -182,10 +182,10 @@ export class PublicController {
   async getOtaUpdate(req: Request, res: Response, next: NextFunction) {
     try {
       const { id, platform, currentVersion } = req.params as { id: string; platform: string; currentVersion: string };
-      
+
       // We look up the project by slug or ID
       const currentRelease = await getCachedCurrentRelease(id);
-      
+
       if (!currentRelease) {
         return res.status(204).send(); // No update available
       }
@@ -256,7 +256,7 @@ export class PublicController {
   async getFrameworkManifest(req: Request, res: Response, next: NextFunction) {
     try {
       const { id, framework } = req.params as { id: string; framework: string };
-      
+
       const currentRelease = await getCachedCurrentRelease(id);
       if (!currentRelease) {
         return res.status(404).json({ error: "No current release found." });

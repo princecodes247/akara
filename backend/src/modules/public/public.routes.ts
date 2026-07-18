@@ -15,5 +15,5 @@ publicRouter.get("/openapi.json", publicController.getOpenApiSpec);
 publicRouter.get("/projects/:id", publicController.getPublicProject);
 publicRouter.get("/projects/:id/current", publicController.getCurrentRelease);
 publicRouter.get("/projects/:id/releases/:releaseId/assets/:assetId", publicController.downloadAsset);
-publicRouter.get("/projects/:id/ota/:platform/:currentVersion", publicController.getOtaUpdate);
-publicRouter.get("/projects/:id/ota/:framework/manifest", publicController.getFrameworkManifest);
+publicRouter.get("/projects/:id/updates/:platform/", publicController.getOtaUpdate);
+publicRouter.get("/projects/:id/updates/:framework/manifest", publicController.getFrameworkManifest);
