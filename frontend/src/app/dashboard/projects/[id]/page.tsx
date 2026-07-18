@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Download, ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Download, ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, EyeOff, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -80,6 +80,37 @@ export default function ProjectDetailsPage() {
       });
 
       alert("Release set as current successfully!");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleToggleVisibility = async (releaseId: number, currentStatus: string) => {
+    const newStatus = currentStatus === "public" ? "draft" : "public";
+    try {
+      const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Failed to change release status");
+      
+      // Update local state snappy-style
+      setReleases(prev => prev.map(r => {
+        if (r.id === releaseId) {
+          return { ...r, status: newStatus };
+        }
+        return r;
+      }));
+      
+      // Revalidate frontend cache
+      await fetch(`/api/revalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: project.slug || id })
+      });
     } catch (err: any) {
       alert(err.message);
     }
@@ -443,6 +474,21 @@ console.log({releases})
                           </Link>
                           
                           <div className="flex gap-2 flex-1 sm:flex-none">
+                            <button
+                              onClick={() => handleToggleVisibility(rel.id, rel.status)}
+                              className="font-mono text-xs border border-border/50 bg-background px-4 py-2.5 rounded-lg hover:bg-surface text-foreground hover:text-accent transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-none"
+                            >
+                              {rel.status === "public" ? (
+                                <>
+                                  <EyeOff size={14} /> Make Draft
+                                </>
+                              ) : (
+                                <>
+                                  <Eye size={14} /> Make Public
+                                </>
+                              )}
+                            </button>
+
                             <button
                               onClick={() => handleSetCurrent(rel.id)}
                               disabled={rel.isCurrent}
