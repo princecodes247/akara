@@ -206,8 +206,30 @@ export class PublicController {
         return res.status(204).send(); // No update for this specific platform
       }
 
-      // TODO: Signature handling
-      const signature = platformAsset.signature || "MOCK_SIGNATURE";
+      let signature: string | null = null;
+      // Try to find the matching signature file (e.g., app.tar.gz.sig)
+      const sigAsset = assets.find((a: any) => a.name === `${platformAsset.name}.sig`);
+      
+      if (sigAsset && sigAsset.url) {
+        try {
+          // sigAsset.url is either a direct GitHub release URL or a local Akara redirect URL
+          // fetch will follow redirects by default to get the raw string content
+          const sigRes = await fetch(sigAsset.url);
+          if (sigRes.ok) {
+            signature = await sigRes.text();
+            signature = signature.trim();
+          } else {
+            console.error(`Failed to fetch signature from ${sigAsset.url}: ${sigRes.status} ${sigRes.statusText}`);
+          }
+        } catch (e) {
+          console.error("Error fetching signature file:", e);
+        }
+      }
+
+      if (!signature) {
+        console.warn(`No signature found for platform ${platform}. Refusing to serve update.`);
+        return res.status(204).send(); // No signature -> no update
+      }
 
       // Identify framework adapter
       const framework = (req.query.framework as string) || "tauri";
