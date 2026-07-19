@@ -296,10 +296,70 @@ export class PublicController {
         }
 
         const assets = currentRelease.assets || [];
-        const platformAsset = assets.find((a: any) => a.tag === platform);
+        let launchAsset = undefined;
+        let updateAssets: any[] = [];
 
-        if (!platformAsset) {
-          return res.status(404).json({ error: `No asset found for platform '${platform}'.` });
+        // Check for metadata.json for Expo OTA updates
+        const metadataAsset = assets.find((a: any) => a.name === "metadata.json");
+        if (metadataAsset && metadataAsset.url) {
+          try {
+            const metaRes = await fetch(metadataAsset.url);
+            if (metaRes.ok) {
+              const metadata = await metaRes.json();
+              const platformData = metadata.fileMetadata?.[platform];
+              
+              if (platformData) {
+                // Find the bundle filename, which is the basename of the bundle path
+                const bundlePath = platformData.bundle;
+                const bundleFilename = bundlePath.substring(bundlePath.lastIndexOf('/') + 1);
+                
+                const bundleAsset = assets.find((a: any) => a.name === bundleFilename);
+                if (bundleAsset) {
+                  launchAsset = {
+                    hash: bundleAsset.hash || bundleFilename.replace('.hbc', '').replace('.js', ''),
+                    key: "bundle",
+                    contentType: "application/javascript",
+                    url: bundleAsset.url
+                  };
+                }
+
+                // Map the static assets
+                if (platformData.assets && Array.isArray(platformData.assets)) {
+                  platformData.assets.forEach((metaAsset: any) => {
+                    const assetPath = metaAsset.path;
+                    const assetHash = assetPath.substring(assetPath.lastIndexOf('/') + 1);
+                    
+                    const uploadedAsset = assets.find((a: any) => a.name === assetHash);
+                    if (uploadedAsset) {
+                      updateAssets.push({
+                        hash: assetHash,
+                        key: assetHash,
+                        fileExtension: `.${metaAsset.ext}`,
+                        contentType: metaAsset.ext === 'png' ? 'image/png' : metaAsset.ext === 'jpg' || metaAsset.ext === 'jpeg' ? 'image/jpeg' : metaAsset.ext === 'ttf' ? 'font/ttf' : 'application/octet-stream',
+                        url: uploadedAsset.url
+                      });
+                    }
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch or parse metadata.json", e);
+          }
+        }
+
+        // Fallback to legacy single-asset tag
+        if (!launchAsset) {
+          const platformAsset = assets.find((a: any) => a.tag === platform);
+          if (!platformAsset) {
+            return res.status(404).json({ error: `No asset found for platform '${platform}'.` });
+          }
+          launchAsset = {
+            hash: platformAsset.hash || "UNVERIFIED",
+            key: "bundle",
+            contentType: "application/javascript",
+            url: platformAsset.url
+          };
         }
 
         // Return Expo Protocol Version 0 manifest
@@ -307,13 +367,8 @@ export class PublicController {
           id: currentRelease.id || currentRelease._id || new Date().getTime().toString(),
           createdAt: currentRelease.publishedAt || new Date().toISOString(),
           runtimeVersion: runtimeVersion,
-          launchAsset: {
-            hash: platformAsset.hash || "UNVERIFIED",
-            key: "bundle",
-            contentType: "application/javascript",
-            url: platformAsset.url
-          },
-          assets: [],
+          launchAsset: launchAsset,
+          assets: updateAssets,
           metadata: {},
           extra: {
             expoClient: {
