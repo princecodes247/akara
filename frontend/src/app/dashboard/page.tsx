@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { config } from "@/lib/config";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {

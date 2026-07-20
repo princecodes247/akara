@@ -31,7 +31,7 @@ export class GithubService {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases?per_page=20`, {
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}/releases?per_page=100`, {
       headers,
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Download, ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, EyeOff, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
@@ -113,22 +113,25 @@ export default function ProjectDetailsPage() {
 console.log({releases})
   // Filter lists based on new Core UX definitions
   // 1. Artifacts: Raw GitHub releases, sorted newest first
-  const artifacts = [...releases].sort((a: any, b: any) => {
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
-    return dateB - dateA;
-  });
-
-  // 2. Akara Releases: Curated releases with customTitle, customBody, or customAssets defined, or published, sorted newest first
-  const customReleases = releases
-    .filter(
-      (r: any) => r.customTitle !== undefined || r.customBody !== undefined || r.customAssets !== undefined || r.isCurrent
-    )
-    .sort((a: any, b: any) => {
+  const artifacts = useMemo(() => {
+    return [...releases].sort((a: any, b: any) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
       return dateB - dateA;
     });
+  }, [releases]);
+
+  const customReleases = useMemo(() => {
+    return releases
+      .filter(
+        (r: any) => r.customTitle !== undefined || r.customBody !== undefined || r.customAssets !== undefined || r.isCurrent
+      )
+      .sort((a: any, b: any) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
+        return dateB - dateA;
+      });
+  }, [releases]);
 
   if (loading) {
     return (

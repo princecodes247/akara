@@ -33,19 +33,16 @@ export class ProjectsService {
     const project = await this.getProjectById(id, userId);
     const sourceRepos = project.sourceRepos || [];
 
-    // Fetch releases for all source repos concurrently
-    const releasesPromises = sourceRepos.map(async (repoName: string) => {
+    // Fetch releases for all source repos sequentially to avoid rate limits
+    const results: any[] = [];
+    for (const repoName of sourceRepos) {
       try {
         const repoReleases = await githubService.getRepoReleases(githubToken, repoName);
-        // Attach source repo name to each release for the UI
-        return repoReleases.map((r: any) => ({ ...r, sourceRepo: repoName }));
+        results.push(repoReleases.map((r: any) => ({ ...r, sourceRepo: repoName })));
       } catch (error) {
         console.error(`Failed to fetch releases for ${repoName}:`, error);
-        return [];
       }
-    });
-
-    const results: any[] = await Promise.all(releasesPromises);
+    }
 
     // Fetch staged releases for this project
     const staged = await db.collections.stagedReleases.find({ projectId: new ObjectId(id) });
@@ -148,11 +145,8 @@ export class ProjectsService {
       throw new Error("Project not found");
     }
 
-    // Fetch staged releases for this project from the database using the resolved project._id
-    const staged = await db.collections.stagedReleases.find({ projectId: project._id });
-
-    // Only return releases that are marked as public
-    const publicStaged = staged.filter((s: any) => s.status === "public");
+    // Fetch only public staged releases from the database
+    const publicStaged = await db.collections.stagedReleases.find({ projectId: project._id, status: "public" }).sort({ _id: -1 });
 
     const allReleases = publicStaged.map((s: any) => this.formatPublicRelease(project, s, project._id.toString()));
 

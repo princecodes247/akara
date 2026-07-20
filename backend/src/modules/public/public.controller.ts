@@ -305,7 +305,7 @@ export class PublicController {
           try {
             const metaRes = await fetch(metadataAsset.url);
             if (metaRes.ok) {
-              const metadata = await metaRes.json();
+              const metadata = await metaRes.json() as any;
               const platformData = metadata.fileMetadata?.[platform];
               
               if (platformData) {

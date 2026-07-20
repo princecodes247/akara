@@ -82,7 +82,7 @@ export default function DashboardClient() {
                     <div>
                       <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent block mb-2">Source Repos</span>
                       <div className="flex flex-col gap-2">
-                        {project.sourceRepos.map(repo => (
+                        {project.sourceRepos.map((repo: string) => (
                           <span key={repo} className="text-sm font-mono bg-surface px-3 py-2 text-foreground/80 border border-border flex items-center">
                             {repo}
                           </span>
