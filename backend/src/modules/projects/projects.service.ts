@@ -33,16 +33,13 @@ export class ProjectsService {
     const project = await this.getProjectById(id, userId);
     const sourceRepos = project.sourceRepos || [];
 
-    // Fetch releases for all source repos sequentially to avoid rate limits
-    const results: any[] = [];
-    for (const repoName of sourceRepos) {
-      try {
-        const repoReleases = await githubService.getRepoReleases(githubToken, repoName);
-        results.push(repoReleases.map((r: any) => ({ ...r, sourceRepo: repoName })));
-      } catch (error) {
-        console.error(`Failed to fetch releases for ${repoName}:`, error);
-      }
-    }
+    // Fetch releases for all source repos concurrently
+    const releasesPromises = sourceRepos.map(async (repoName: string) => {
+      const repoReleases = await githubService.getRepoReleases(githubToken, repoName);
+      return repoReleases.map((r: any) => ({ ...r, sourceRepo: repoName }));
+    });
+
+    const results: any[] = await Promise.all(releasesPromises);
 
     // Fetch staged releases for this project
     const staged = await db.collections.stagedReleases.find({ projectId: new ObjectId(id) });

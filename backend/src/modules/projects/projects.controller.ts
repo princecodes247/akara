@@ -2,6 +2,18 @@ import type { Request, Response, NextFunction } from "express";
 import { projectsService } from "./projects.service";
 import type { AuthRequest } from "../../middleware/auth.middleware";
 import { githubService } from "../github/github.service";
+import { cached } from "../../lib/cache";
+
+const getCachedProjectReleases = cached(
+  (id: string, githubToken: string, userId: string | undefined) =>
+    projectsService.getProjectReleases(id, githubToken, userId),
+  {
+    key: (id: string, githubToken: string, userId: string | undefined) => {
+      return `project:releases:${id}:${userId}`;
+    },
+    ttlSeconds: 120
+  }
+);
 
 export class ProjectsController {
   async getProjects(req: AuthRequest, res: Response, next: NextFunction) {
@@ -42,7 +54,7 @@ export class ProjectsController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const releases = await projectsService.getProjectReleases(id, githubToken, userId);
+      const releases = await getCachedProjectReleases(id, githubToken, userId);
       res.json(releases);
     } catch (error: any) {
       if (error.message === "Project not found") {
