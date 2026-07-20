@@ -472,8 +472,27 @@ console.log({releases})
                       {/* Staged custom assets list */}
                       {rel.customAssets && rel.customAssets.length > 0 && (
                         <div className="z-10">
-                          <span className="font-mono text-xs font-bold text-foreground/50 uppercase tracking-wider block mb-3">Release Assets ({rel.customAssets.length})</span>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <button 
+                            onClick={(e) => toggleArtifactExpanded(`release-${rel.id}`, e)}
+                            className="flex items-center justify-between w-full font-mono text-xs font-bold text-foreground/50 uppercase tracking-wider hover:text-foreground transition-colors group"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Package size={14} className="group-hover:text-accent transition-colors" /> 
+                              Release Assets ({rel.customAssets.length})
+                            </span>
+                            {expandedArtifacts[`release-${rel.id}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                          
+                          <AnimatePresence>
+                            {expandedArtifacts[`release-${rel.id}`] && (
+                              <motion.div 
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
                             {rel.customAssets.map((asset: any) => (
                               <div key={asset.id} className="border border-border/40 bg-background/50 rounded-lg p-3 flex flex-col gap-2 font-mono text-xs hover:border-border/80 transition-colors">
                                 <div className="flex items-center justify-between">
@@ -500,7 +519,10 @@ console.log({releases})
                                 </div>
                               </div>
                             ))}
-                          </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       )}
                     </div>
