@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import { useProject } from "@/lib/api/hooks/useProjects";
 import { useReleases, useUpdateReleaseMapping, useSyncReleaseAssets } from "@/lib/api/hooks/useReleases";
+import { EditReleaseSkeleton } from "@/components/ui/Skeleton";
 
 interface CustomAsset {
   id: string | number;
@@ -202,12 +203,7 @@ export default function EditReleasePage() {
   };
 
   if (loading || !currentRelease) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <Loader2 className="animate-spin text-accent mb-4" size={48} />
-        <p className="font-mono text-sm text-foreground/60 uppercase">Loading Editor Context...</p>
-      </div>
-    );
+    return <EditReleaseSkeleton />;
   }
 
   const artifacts = useMemo(() => {

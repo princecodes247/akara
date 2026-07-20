@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Save, Trash2, Loader2, Settings } from "lucide-react";
+import { ArrowLeft, Plus, X, Save, Trash2, Settings } from "lucide-react";
 import { RepoSelector } from "@/components/RepoSelector";
 import { config } from "@/lib/config";
 import { useProject, useUpdateProject, useDeleteProject } from "@/lib/api/hooks/useProjects";
+import { SettingsSkeleton } from "@/components/ui/Skeleton";
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -96,12 +97,7 @@ export default function ProjectSettingsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <Loader2 className="animate-spin text-accent mb-4" size={48} />
-        <p className="font-mono text-sm text-foreground/60 uppercase">Loading Settings Context...</p>
-      </div>
-    );
+    return <SettingsSkeleton />;
   }
 
   return (

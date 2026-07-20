@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, FolderGit2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useProjects } from "@/lib/api/hooks/useProjects";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
 export interface Project {
   _id: string;
@@ -39,11 +40,7 @@ export default function DashboardClient() {
       <div className="p-5 sm:p-8 md:p-12 flex-1 max-w-7xl mx-auto w-full">
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="glass-card p-6 h-48 animate-pulse bg-surface" />
-          ))}
-        </div>
+        <DashboardSkeleton />
       ) : !projects || projects.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

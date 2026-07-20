@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, GitBranch, Settings, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, GitBranch, Settings, LogOut } from "lucide-react";
 import { config } from "@/lib/config";
+import { AuthSkeleton } from "@/components/ui/Skeleton";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,12 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   if (!authorized) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <Loader2 className="animate-spin text-accent mb-4" size={48} />
-        <p className="font-mono text-sm text-foreground/70 uppercase tracking-widest">Verifying Authorization...</p>
-      </div>
-    );
+    return <AuthSkeleton />;
   }
 
   return (

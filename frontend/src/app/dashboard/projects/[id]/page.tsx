@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Download, ArrowLeft, Loader2, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, EyeOff, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Download, ArrowLeft, Server, GitMerge, FileCode, CheckCircle, Edit3, Trash2, Globe, Sparkles, Eye, EyeOff, Settings, Package, Rocket, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProject } from "@/lib/api/hooks/useProjects";
 import { useReleases, useUpdateReleaseMapping, useDeleteReleaseMapping } from "@/lib/api/hooks/useReleases";
+import { ProjectDetailSkeleton } from "@/components/ui/Skeleton";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -134,12 +135,7 @@ console.log({releases})
   }, [releases]);
 
   if (loading) {
-    return (
-      <div className="animate-in fade-in duration-500 flex flex-col h-full items-center justify-center min-h-[60vh]">
-        <Loader2 size={48} className="animate-spin text-accent mb-4" />
-        <p className="font-mono text-foreground/60 uppercase tracking-wider">Syncing System Revision...</p>
-      </div>
-    );
+    return <ProjectDetailSkeleton />;
   }
 
   if (error || !project) {
