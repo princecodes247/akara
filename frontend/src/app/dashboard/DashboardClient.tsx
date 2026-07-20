@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, FolderGit2, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { config } from "@/lib/config";
+import { useProjects } from "@/lib/api/hooks/useProjects";
 
 export interface Project {
   _id: string;
@@ -13,12 +13,8 @@ export interface Project {
   targetRepo: string;
 }
 
-interface Props {
-  projects: Project[];
-}
-
-export default function DashboardClient({ projects }: Props) {
-  const [loading, setLoading] = useState(false);
+export default function DashboardClient() {
+  const { data: projects, isLoading: loading } = useProjects();
 
   return (
     <div className="animate-in fade-in duration-500 flex flex-col h-full">
@@ -48,7 +44,7 @@ export default function DashboardClient({ projects }: Props) {
             <div key={i} className="glass-card p-6 h-48 animate-pulse bg-surface" />
           ))}
         </div>
-      ) : projects.length === 0 ? (
+      ) : !projects || projects.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

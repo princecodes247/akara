@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, X, Save } from "lucide-react";
 import { RepoSelector } from "@/components/RepoSelector";
 import { config } from "@/lib/config";
+import { useCreateProject } from "@/lib/api/hooks/useProjects";
 
 export default function NewProject() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function NewProject() {
   const [targetRepo, setTargetRepo] = useState("");
   const [sourceRepos, setSourceRepos] = useState<string[]>([]);
   const [currentSource, setCurrentSource] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const createProjectMutation = useCreateProject();
 
   const handleAddSource = () => {
     if (currentSource && !sourceRepos.includes(currentSource)) {
@@ -34,29 +35,11 @@ export default function NewProject() {
       return;
     }
 
-    setLoading(true);
-    setError("");
-
     try {
-      const res = await fetch(`${config.apiUrl}/projects`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, targetRepo, sourceRepos })
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create project");
-      }
-
+      await createProjectMutation.mutateAsync({ name, targetRepo, sourceRepos });
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -163,15 +146,15 @@ export default function NewProject() {
         <div className="flex justify-end pt-6 border-t border-border">
           <button
             type="submit"
-            disabled={loading}
+            disabled={createProjectMutation.isPending}
             className="flex items-center gap-3 bg-foreground text-background px-8 py-4 font-bold font-mono uppercase tracking-wider brutalist-shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
+            {createProjectMutation.isPending ? (
               <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin" />
             ) : (
               <Save size={18} />
             )}
-            {loading ? "INITIALIZING..." : "SAVE PROJECT"}
+            {createProjectMutation.isPending ? "INITIALIZING..." : "SAVE PROJECT"}
           </button>
         </div>
       </form>

@@ -7,6 +7,8 @@ import { ArrowLeft, Loader2, Save, Send, Trash2, Edit2, Box, Tag, Sparkles, Chec
 import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import { useProject } from "@/lib/api/hooks/useProjects";
+import { useReleases, useUpdateReleaseMapping, useSyncReleaseAssets } from "@/lib/api/hooks/useReleases";
 
 interface CustomAsset {
   id: string | number;
@@ -23,9 +25,11 @@ export default function EditReleasePage() {
   const projectId = params.id as string;
   const releaseId = params.releaseId as string;
 
-  const [project, setProject] = useState<any>(null);
-  const [allReleases, setAllReleases] = useState<any[]>([]);
-  const [currentRelease, setCurrentRelease] = useState<any>(null);
+  const { data: project, isLoading: projectLoading } = useProject(projectId);
+  const { data: allReleases = [], isLoading: releasesLoading } = useReleases(projectId);
+  const loading = projectLoading || releasesLoading;
+
+  const currentRelease = allReleases.find((r: any) => String(r.id) === releaseId);
   
   // Custom edit state
   const [customTitle, setCustomTitle] = useState("");
@@ -35,7 +39,7 @@ export default function EditReleasePage() {
   
   // UI states
   const [activeArtifactIds, setActiveArtifactIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
@@ -51,71 +55,44 @@ export default function EditReleasePage() {
   ];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch project
-        const projRes = await fetch(`${config.apiUrl}/projects/${projectId}`, { credentials: "include" });
-        if (!projRes.ok) throw new Error("Failed to fetch project");
-        const projData = await projRes.json();
-        setProject(projData);
-
-        // Fetch all releases
-        const relRes = await fetch(`${config.apiUrl}/projects/${projectId}/releases`, { credentials: "include" });
-        if (!relRes.ok) throw new Error("Failed to fetch releases");
-        const relData = await relRes.json();
-        setAllReleases(relData);
-
-        // Find the release we are editing
-        const rel = relData.find((r: any) => String(r.id) === releaseId);
-        if (rel) {
-          setCurrentRelease(rel);
-          setCustomTitle(rel.customTitle || rel.title || rel.name || rel.tag || "");
-          let initialBody = "";
-          if (rel.customBody !== undefined) {
-            initialBody = rel.customBody;
-          } else if (rel.body) {
-            initialBody = rel.body;
-          } else {
-            // Find the previous release's description/body
-            const sortedRels = [...relData].sort((a: any, b: any) => {
-              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
-              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
-              return dateB - dateA;
-            });
-            const previousRelease = sortedRels.find((r: any) => String(r.id) !== releaseId && (r.customBody || r.body));
-            if (previousRelease) {
-              initialBody = previousRelease.customBody || previousRelease.body || "";
-            }
-          }
-          setCustomBody(initialBody);
-          const assets = rel.customAssets || [];
-          setSelectedAssets(assets);
-          setIsCurrent(rel.isCurrent || false);
-
-          // Auto-activate artifacts that have assets already selected
-          const activeIds = new Set<string>();
-          if (assets.length > 0) {
-            assets.forEach((a: CustomAsset) => {
-              activeIds.add(String(a.sourceReleaseId));
-            });
-          } else {
-            // Otherwise, default to activating the current artifact being edited
-            activeIds.add(String(rel.id));
-          }
-          setActiveArtifactIds(activeIds);
-        } else {
-          throw new Error("Release not found in this project");
+    if (!loading && allReleases.length > 0 && currentRelease && !hasInitialized) {
+      setCustomTitle(currentRelease.customTitle || currentRelease.title || currentRelease.name || currentRelease.tag || "");
+      let initialBody = "";
+      if (currentRelease.customBody !== undefined) {
+        initialBody = currentRelease.customBody;
+      } else if (currentRelease.body) {
+        initialBody = currentRelease.body;
+      } else {
+        const sortedRels = [...allReleases].sort((a: any, b: any) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
+          return dateB - dateA;
+        });
+        const previousRelease = sortedRels.find((r: any) => String(r.id) !== releaseId && (r.customBody || r.body));
+        if (previousRelease) {
+          initialBody = previousRelease.customBody || previousRelease.body || "";
         }
-      } catch (err: any) {
-        alert(err.message);
-        router.push(`/dashboard/projects/${projectId}`);
-      } finally {
-        setLoading(false);
       }
-    };
+      setCustomBody(initialBody);
+      const assets = currentRelease.customAssets || [];
+      setSelectedAssets(assets);
+      setIsCurrent(currentRelease.isCurrent || false);
 
-    fetchData();
-  }, [projectId, releaseId, router]);
+      const activeIds = new Set<string>();
+      if (assets.length > 0) {
+        assets.forEach((a: CustomAsset) => {
+          activeIds.add(String(a.sourceReleaseId));
+        });
+      } else {
+        activeIds.add(String(currentRelease.id));
+      }
+      setActiveArtifactIds(activeIds);
+      setHasInitialized(true);
+    } else if (!loading && !currentRelease) {
+      alert("Release not found in this project");
+      router.push(`/dashboard/projects/${projectId}`);
+    }
+  }, [loading, allReleases, currentRelease, hasInitialized, projectId, releaseId, router]);
 
   const toggleArtifactActive = (id: string) => {
     setActiveArtifactIds(prev => {
@@ -179,6 +156,9 @@ export default function EditReleasePage() {
     return found ? found.tag : `v${sourceRelId}`;
   };
 
+  const updateMappingMutation = useUpdateReleaseMapping(projectId, releaseId);
+  const syncAssetsMutation = useSyncReleaseAssets(projectId, releaseId);
+
   const handleSave = async (status: "draft" | "public") => {
     if (selectedAssets.length === 0) {
       alert("Validation Error: A release must contain at least 1 selected asset.");
@@ -187,29 +167,20 @@ export default function EditReleasePage() {
 
     setSaving(true);
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${projectId}/releases/${releaseId}/mapping`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          customTitle,
-          customBody,
-          customAssets: selectedAssets,
-          status,
-          isCurrent,
-          releaseData: currentRelease
-        })
+      await updateMappingMutation.mutateAsync({
+        customTitle,
+        customBody,
+        customAssets: selectedAssets,
+        status,
+        isCurrent,
+        releaseData: currentRelease
       });
 
-      if (!res.ok) throw new Error("Failed to save release mapping");
-      
       // Revalidate frontend cache
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: project.slug || projectId })
+        body: JSON.stringify({ slug: project?.slug || projectId })
       });
 
       alert(status === "public" ? "Release published successfully!" : "Draft saved successfully!");
@@ -221,30 +192,12 @@ export default function EditReleasePage() {
     }
   };
 
-  const [syncing, setSyncing] = useState(false);
-
   const handleSync = async () => {
-    setSyncing(true);
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${projectId}/releases/${releaseId}/sync`, {
-        method: "POST",
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("Failed to sync release assets");
-      
-      const updatedRelease = await res.json();
-      setCurrentRelease(updatedRelease);
-      
-      // Update the allReleases list with the updated release
-      setAllReleases(prev => prev.map(r => r.id.toString() === releaseId.toString() ? { ...r, ...updatedRelease } : r));
-
-      // Refresh custom assets list if needed by checking the updated release assets array 
-      // (Optionally could just reload the page or let the user click save again)
+      await syncAssetsMutation.mutateAsync();
       alert("Assets synced successfully from GitHub!");
     } catch (err: any) {
       alert(err.message);
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -296,11 +249,11 @@ export default function EditReleasePage() {
           </button>
 
           <button
-            disabled={syncing}
+            disabled={syncAssetsMutation.isPending}
             onClick={handleSync}
             className="flex items-center gap-2 font-mono text-xs font-bold uppercase border border-border/50 rounded-lg px-4 py-2 hover:bg-surface/50 transition-colors shadow-sm"
           >
-            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+            <RefreshCw size={14} className={syncAssetsMutation.isPending ? "animate-spin" : ""} />
             Sync
           </button>
 

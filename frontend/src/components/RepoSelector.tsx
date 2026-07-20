@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Check, ChevronsUpDown, Loader2, Plus, X } from "lucide-react";
-import { config } from "@/lib/config";
+import { useGithubRepos } from "@/lib/api/hooks/useGithub";
 
 interface Repo {
   id: number;
@@ -22,30 +22,10 @@ interface RepoSelectorProps {
 }
 
 export function RepoSelector({ label, description, multiSelect = false, allowCustom = false, selected, onChange }: RepoSelectorProps) {
-  const [repos, setRepos] = useState<Repo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: repos = [], isLoading: loading } = useGithubRepos();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchRepos = async () => {
-      try {
-        const res = await fetch(`${config.apiUrl}/github/repos`, {
-          credentials: "include"
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setRepos(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch repos", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRepos();
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

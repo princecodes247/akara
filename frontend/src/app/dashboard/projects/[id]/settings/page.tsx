@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, X, Save, Trash2, Loader2, Settings } from "lucide-react";
 import { RepoSelector } from "@/components/RepoSelector";
 import { config } from "@/lib/config";
+import { useProject, useUpdateProject, useDeleteProject } from "@/lib/api/hooks/useProjects";
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -21,38 +22,30 @@ export default function ProjectSettingsPage() {
   const [isPublic, setIsPublic] = useState(true);
   const [originalName, setOriginalName] = useState("");
 
-  const [loading, setLoading] = useState(true);
+  const { data: project, isLoading: loading, error: fetchError } = useProject(id);
+  const updateProjectMutation = useUpdateProject(id);
+  const deleteProjectMutation = useDeleteProject();
+
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const res = await fetch(`${config.apiUrl}/projects/${id}`, {
-          credentials: "include"
-        });
-
-        if (!res.ok) throw new Error("Failed to load project details");
-        const data = await res.json();
-        setName(data.name);
-        setSlug(data.slug || "");
-        setSeoTitle(data.seoTitle || "");
-        setSeoDescription(data.seoDescription || "");
-        setIsPublic(data.isPublic ?? true);
-        setOriginalName(data.name);
-        setSourceRepos(data.sourceRepos || []);
-        setTargetRepo(data.targetRepo || "");
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProject();
-  }, [id]);
+    if (project) {
+      setName(project.name);
+      setSlug(project.slug || "");
+      setSeoTitle(project.seoTitle || "");
+      setSeoDescription(project.seoDescription || "");
+      setIsPublic(project.isPublic ?? true);
+      setOriginalName(project.name);
+      setSourceRepos(project.sourceRepos || []);
+      setTargetRepo(project.targetRepo || "");
+    }
+    if (fetchError) {
+      setError(fetchError.message);
+    }
+  }, [project, fetchError]);
 
   const handleRemoveSource = (repo: string) => {
     setSourceRepos(sourceRepos.filter(r => r !== repo));
@@ -69,20 +62,7 @@ export default function ProjectSettingsPage() {
     setError("");
 
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription, isPublic })
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to update project");
-      }
-
+      await updateProjectMutation.mutateAsync({ name, targetRepo, sourceRepos, slug, seoTitle, seoDescription, isPublic });
       alert("Project settings updated successfully!");
       router.push(`/dashboard/projects/${id}`);
     } catch (err: any) {
@@ -106,16 +86,7 @@ export default function ProjectSettingsPage() {
     setError("");
 
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${id}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete project");
-      }
-
+      await deleteProjectMutation.mutateAsync(id);
       alert("Project deleted successfully.");
       router.push("/dashboard");
     } catch (err: any) {
