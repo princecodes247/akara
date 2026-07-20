@@ -19,7 +19,7 @@ export default function ProjectDetailsPage() {
   const loading = loadingProject || loadingReleases;
   const error = projectError?.message || releasesError?.message || "";
 
-  const [activeTab, setActiveTab] = useState<"artifacts" | "releases" | "integrations">("artifacts");
+  const [activeTab, setActiveTab] = useState<"artifacts" | "releases" | "integrations">("releases");
   
   // Track which artifact's assets are expanded
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<string, boolean>>({});
@@ -208,8 +208,8 @@ console.log({releases})
       <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 max-w-7xl mx-auto w-full overflow-x-auto">
         <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-fit border border-border/50 min-w-max">
           {[
-            { id: "artifacts", label: "Artifacts", count: artifacts.length, icon: Package },
             { id: "releases", label: "Releases", count: customReleases.length, icon: Rocket },
+            { id: "artifacts", label: "Artifacts", count: artifacts.length, icon: Package },
             { id: "integrations", label: "OTA Integrations", count: 1, icon: FileCode }
           ].map((tab) => (
             <button
