@@ -54,6 +54,7 @@ export class ProjectsService {
     // Flatten the array of arrays and merge staging data
     const allReleases = results.flat().map(r => {
       const stage = stagedMap.get(r.id.toString());
+      if (stage) stagedMap.delete(r.id.toString());
       return {
         ...r,
         status: stage?.status || "draft",
@@ -64,6 +65,20 @@ export class ProjectsService {
         downloadCounts: stage?.downloadCounts || {},
       };
     });
+
+    // Add remaining staged releases that were not returned by GitHub (e.g., deleted or hidden)
+    for (const stage of stagedMap.values()) {
+      const r = stage.releaseData || { id: stage.sourceReleaseId, name: stage.title, tag_name: stage.tag };
+      allReleases.push({
+        ...r,
+        status: stage.status || "draft",
+        isCurrent: stage.isCurrent || false,
+        customTitle: stage.title,
+        customBody: stage.body,
+        customAssets: stage.assets,
+        downloadCounts: stage.downloadCounts || {},
+      });
+    }
 
     // Sort by createdAt descending (fallback to publishedAt)
     allReleases.sort((a, b) => {
