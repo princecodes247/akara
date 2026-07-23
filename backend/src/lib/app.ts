@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import config from './config';
 
-type AppRoute = 
+type AppRoute =
   | { path: string; router: Router }
   | { prefix?: string; middlewares?: express.RequestHandler[]; routes: AppRoute[] };
 
@@ -16,6 +16,9 @@ interface AppOptions {
 
 export const setupApp = (options: AppOptions): Express => {
   const app = express();
+
+  // Trust the first proxy so rate-limiting works correctly behind load balancers/proxies
+  app.set('trust proxy', 1);
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -51,8 +54,20 @@ export const setupApp = (options: AppOptions): Express => {
       })(req, res, next);
     }
   });
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Drop known malicious bot requests early, before parsing bodies or consuming more memory
+  const botPaths = ['.php', '.env', 'wp-admin', 'wp-login', 'cgi-bin', 'phpmyadmin'];
+  app.use((req, res, next) => {
+    const p = req.path.toLowerCase();
+    if (botPaths.some(bp => p.includes(bp))) {
+      // End the response immediately without any body to save bandwidth/resources
+      return res.status(403).end();
+    }
+    next();
+  });
+
+  // Add explicit limits to body parsers to prevent OOM crashes from large payloads
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(cookieParser());
   app.use(morgan('dev'));
 
@@ -76,6 +91,11 @@ export const setupApp = (options: AppOptions): Express => {
   };
 
   mountRoutes(app, options.routes);
+
+  // Strict 404 handler so that unmatched routes don't hang or leak
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Not Found' });
+  });
 
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err);
