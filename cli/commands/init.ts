@@ -1,25 +1,31 @@
 import { command } from "commandstruct";
 import { writeFileSync } from "fs";
 import { resolve } from "path";
+import chalk from "chalk";
+import { detectFramework } from "../core/adapters";
 
 export const initCmd = command("init")
   .describe("Initialize Akara in the current project")
-  .action(() => {
-    console.log("✔ Detected Tauri project");
-    console.log("✔ Detected Git repository");
-    console.log("✔ Detected GitHub Actions");
-    console.log("✔ Detected updater configuration");
-    
-    const configContent = `name = "Acme App"
-framework = "tauri"
-runtime = "desktop"
+  .action(async () => {
+    const cwd = process.cwd();
+    const adapter = await detectFramework(cwd);
+
+    if (adapter) {
+      console.log(chalk.green("✔"), `Detected ${adapter.name} project`);
+    } else {
+      console.log(chalk.yellow("⚠"), "Could not automatically detect project framework.");
+    }
+
+    console.log(chalk.green("✔"), "Detected Git repository");
+
+    const framework = adapter ? adapter.name : "unknown";
+
+    const configContent = `name = "Akara Project"
+framework = "${framework}"
+targets = ["macos", "windows", "linux"]
 channel = "production"
-version_source = "cargo"
-artifact_dir = "src-tauri/target/release/bundle"
-storage = "github"
-signing = "keychain"
 `;
-    
-    writeFileSync(resolve(process.cwd(), "akara.toml"), configContent, "utf-8");
-    console.log("✔ Created akara.toml");
+
+    writeFileSync(resolve(cwd, "akara.toml"), configContent, "utf-8");
+    console.log(chalk.green("✔"), "Created akara.toml");
   });
