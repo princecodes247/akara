@@ -9,7 +9,7 @@ export default function DeviceAuthClient({ code, isLoggedIn }: { code: string; i
 
   const handleAuthorize = async () => {
     if (!isLoggedIn) {
-      window.location.href = `${config.apiUrl}/auth/github`;
+      window.location.href = `${config.apiUrl}/auth/github?returnTo=${encodeURIComponent('/auth/device?code=' + code)}`;
       return;
     }
 

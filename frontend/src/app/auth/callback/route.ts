@@ -18,5 +18,10 @@ export async function GET(request: Request) {
     path: "/",
   });
 
+  const returnTo = searchParams.get("returnTo");
+  if (returnTo) {
+    return NextResponse.redirect(new URL(returnTo, request.url));
+  }
+
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }
