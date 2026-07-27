@@ -11,3 +11,8 @@ authRouter.get("/github/callback", authController.handleGithubCallback);
 
 // 3. Logout
 authRouter.get("/logout", authController.logout);
+
+// 4. Device Auth
+authRouter.post("/device/code", authController.createDeviceCode);
+authRouter.post("/device/verify", authController.verifyDeviceCode);
+authRouter.post("/device/status", authController.checkDeviceCodeStatus);

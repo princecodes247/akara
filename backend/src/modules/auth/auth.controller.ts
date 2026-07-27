@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { authService } from "./auth.service";
 import config from "../../lib/config";
+import { deviceAuthService } from "./device-auth.service";
 
 export class AuthController {
   getGithubAuthUrl(req: Request, res: Response, next: NextFunction) {
@@ -39,6 +40,52 @@ export class AuthController {
   logout(req: Request, res: Response) {
     res.clearCookie("akara_token", { path: "/" });
     res.redirect(`${config.FRONTEND_URL}/`);
+  }
+
+  async createDeviceCode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const code = await deviceAuthService.createDeviceCode();
+      const verificationUri = `${config.FRONTEND_URL}/auth/device`;
+      res.json({ deviceCode: code, verificationUri });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async verifyDeviceCode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { code } = req.body;
+      const token = req.cookies.akara_token;
+
+      if (!code) {
+        return res.status(400).json({ error: "No code provided" });
+      }
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const success = await deviceAuthService.verifyDeviceCode(code, token);
+      if (!success) {
+        return res.status(400).json({ error: "Invalid or expired code" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async checkDeviceCodeStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { code } = req.body;
+      if (!code) {
+        return res.status(400).json({ error: "No code provided" });
+      }
+
+      const result = await deviceAuthService.checkDeviceCodeStatus(code);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
