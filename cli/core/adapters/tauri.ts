@@ -1,12 +1,20 @@
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import type { FrameworkAdapter } from "./types";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 
 export const TauriAdapter: FrameworkAdapter = {
   name: "tauri",
   detect: (dir) => {
     return existsSync(resolve(dir, "src-tauri/tauri.conf.json"));
+  },
+  verifyTools: async () => {
+    return new Promise((resolve, reject) => {
+      exec("cargo tauri --version", (error: any) => {
+        if (error) reject(new Error("cargo or tauri-cli is not installed. Please install Rust and tauri-cli (cargo install tauri-cli)."));
+        else resolve();
+      });
+    });
   },
   buildLocal: async (dir, config) => {
     return new Promise((resolve, reject) => {

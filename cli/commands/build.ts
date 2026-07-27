@@ -33,6 +33,7 @@ export const buildCmd = command("build")
 
     console.log(chalk.blue("i"), `Building locally using ${adapter.name} adapter...`);
     try {
+      await adapter.verifyTools();
       await adapter.buildLocal(cwd, config);
       console.log(chalk.green("✔"), "Build completed successfully.");
 

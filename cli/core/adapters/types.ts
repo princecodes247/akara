@@ -16,6 +16,7 @@ export interface ProjectConfig {
 export interface FrameworkAdapter {
   name: Framework;
   detect(dir: string): boolean | Promise<boolean>;
+  verifyTools(): Promise<void>;
   buildLocal(dir: string, config: ProjectConfig): Promise<void>;
   getArtifacts(dir: string, config: ProjectConfig): Promise<string[]>;
 }

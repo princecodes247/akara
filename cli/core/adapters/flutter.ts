@@ -1,12 +1,20 @@
 import { existsSync } from "fs";
 import { resolve } from "path";
 import type { FrameworkAdapter } from "./types";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 
 export const FlutterAdapter: FrameworkAdapter = {
   name: "flutter",
   detect: (dir) => {
     return existsSync(resolve(dir, "pubspec.yaml"));
+  },
+  verifyTools: async () => {
+    return new Promise((resolve, reject) => {
+      exec("flutter --version", (error: any) => {
+        if (error) reject(new Error("flutter is not installed. Please install the Flutter SDK."));
+        else resolve();
+      });
+    });
   },
   buildLocal: async (dir, config) => {
     return new Promise((resolve, reject) => {

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import type { FrameworkAdapter } from "./types";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 
 export const ElectronAdapter: FrameworkAdapter = {
   name: "electron",
@@ -13,6 +13,14 @@ export const ElectronAdapter: FrameworkAdapter = {
     } catch {
       return false;
     }
+  },
+  verifyTools: async () => {
+    return new Promise((resolve, reject) => {
+      exec("npx --version", (error: any) => {
+        if (error) reject(new Error("npx is not installed. Please install Node.js and npm."));
+        else resolve();
+      });
+    });
   },
   buildLocal: async (dir, config) => {
     return new Promise((resolve, reject) => {
