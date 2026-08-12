@@ -33,28 +33,18 @@ export default function ProjectDetailsPage() {
     setExpandedArtifacts(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const updateMappingMutation = useUpdateReleaseMapping(id, "");
-  const deleteMappingMutation = useDeleteReleaseMapping(id, "");
+  const updateMappingMutation = useUpdateReleaseMapping(id);
+  const deleteMappingMutation = useDeleteReleaseMapping(id);
 
   const handleSetCurrent = async (releaseId: number) => {
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isCurrent: true, status: "public" }),
-      });
-
-      if (!res.ok) throw new Error("Failed to set release as current");
+      await updateMappingMutation.mutateAsync({ _releaseId: releaseId.toString(), isCurrent: true, status: "public" });
 
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: project?.slug || id })
       });
-
-      alert("Release set as current successfully!");
-      window.location.reload();
     } catch (err: any) {
       alert(err.message);
     }
@@ -63,21 +53,13 @@ export default function ProjectDetailsPage() {
   const handleToggleVisibility = async (releaseId: number, currentStatus: string) => {
     const newStatus = currentStatus === "public" ? "draft" : "public";
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) throw new Error("Failed to change release status");
+      await updateMappingMutation.mutateAsync({ _releaseId: releaseId.toString(), status: newStatus });
 
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: project?.slug || id })
       });
-      window.location.reload();
     } catch (err: any) {
       alert(err.message);
     }
@@ -87,19 +69,13 @@ export default function ProjectDetailsPage() {
     if (!confirm("Are you sure you want to delete this custom release mapping? This will unpublish the release from GitHub if it is currently public.")) return;
 
     try {
-      const res = await fetch(`${config.apiUrl}/projects/${id}/releases/${releaseId}/mapping`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete release mapping");
+      await deleteMappingMutation.mutateAsync(releaseId.toString());
 
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: project?.slug || id })
       });
-      window.location.reload();
     } catch (err: any) {
       alert(err.message);
     }
