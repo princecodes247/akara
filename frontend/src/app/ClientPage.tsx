@@ -76,14 +76,14 @@ export default function ClientPage({ isLoggedIn }: Props) {
               <ArrowUpRight size={16} />
             </button>
 
-            <button
+            {/* <button
               onClick={handleCopy}
               className="terminal-chip py-3 px-5 cursor-pointer hover:border-[#2a2a2a] transition-colors"
             >
               <span className="terminal-accent">$</span>
               <span>npx akara init</span>
               <Copy size={14} className={copied ? "text-accent" : "text-foreground-muted/50"} />
-            </button>
+            </button> */}
           </div>
         </motion.div>
 
