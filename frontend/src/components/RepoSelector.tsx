@@ -65,24 +65,24 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
   };
 
   return (
-    <div className="relative font-mono" ref={dropdownRef}>
-      <label className="block text-sm font-bold text-foreground mb-2 uppercase tracking-wider">{label}</label>
-      {description && <p className="text-foreground/60 text-sm mb-4">{description}</p>}
+    <div className="relative" ref={dropdownRef}>
+      <label className="block text-sm font-medium text-foreground mb-2">{label}</label>
+      {description && <p className="text-foreground-muted text-sm mb-3">{description}</p>}
 
-      <div 
-        className="w-full flex items-center justify-between bg-background border border-border hover:border-accent transition-colors"
+      <div
+        className="w-full flex items-center justify-between bg-background border border-border rounded-lg hover:border-[#2a2a2a] transition-colors"
       >
-        <div 
+        <div
           onClick={() => setOpen(!open)}
-          className="flex-1 px-4 py-3 cursor-pointer truncate text-foreground/80"
+          className="flex-1 px-4 py-3 cursor-pointer truncate text-foreground/70 text-sm"
         >
-          {multiSelect 
-            ? Array.isArray(selected) && selected.length > 0 
+          {multiSelect
+            ? Array.isArray(selected) && selected.length > 0
               ? `${selected.length} repositories selected`
               : "Select repositories..."
             : selected || "Select a repository..."}
         </div>
-        <div className="flex items-center gap-2 pr-4">
+        <div className="flex items-center gap-2 pr-3">
           {!multiSelect && selected && (
             <button
               type="button"
@@ -90,71 +90,71 @@ export function RepoSelector({ label, description, multiSelect = false, allowCus
                 e.stopPropagation();
                 onChange("");
               }}
-              className="p-1 hover:text-red-455 text-foreground/40 transition-colors"
+              className="p-1 hover:text-red-400 text-foreground-muted transition-colors rounded"
               title="Clear selection"
             >
               <X size={14} />
             </button>
           )}
-          <ChevronsUpDown size={16} className="text-foreground/50 cursor-pointer" onClick={() => setOpen(!open)} />
+          <ChevronsUpDown size={15} className="text-foreground-muted cursor-pointer" onClick={() => setOpen(!open)} />
         </div>
       </div>
 
       {open && (
-        <div className="absolute z-50 w-full mt-2 bg-background border border-border shadow-2xl max-h-60 overflow-y-auto">
-          <div className="sticky top-0 bg-background p-2 border-b border-border z-10">
-            <input 
-              type="text" 
+        <div className="absolute z-50 w-full mt-2 bg-surface border border-border rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+          <div className="sticky top-0 bg-surface p-2 border-b border-border z-10">
+            <input
+              type="text"
               placeholder="Search repositories..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-surface border border-border px-3 py-2 text-sm focus:outline-none focus:border-accent text-foreground"
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/50 text-foreground placeholder:text-foreground-muted/40"
               autoFocus
             />
           </div>
 
-          <div className="p-2">
+          <div className="p-1.5">
             {loading ? (
               <div className="flex items-center justify-center p-4">
-                <Loader2 size={18} className="animate-spin text-accent" />
+                <Loader2 size={16} className="animate-spin text-accent" />
               </div>
             ) : (
               <>
                 {filteredRepos.length === 0 && !search ? (
-                  <div className="p-4 text-center text-sm text-foreground/50">
+                  <div className="p-4 text-center text-sm text-foreground-muted">
                     No repositories found.
                   </div>
                 ) : filteredRepos.length === 0 && allowCustom && search ? (
                   <button
                     type="button"
                     onClick={handleCustomAdd}
-                    className="w-full flex items-center gap-2 p-3 text-sm text-left hover:bg-surface text-accent font-bold"
+                    className="w-full flex items-center gap-2 p-3 text-sm text-left hover:bg-background rounded-lg text-accent font-medium transition-colors"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                     Create/Use custom: {search}
                   </button>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {filteredRepos.map(repo => {
-                      const isSelected = multiSelect 
+                      const isSelected = multiSelect
                         ? Array.isArray(selected) && selected.includes(repo.fullName)
                         : selected === repo.fullName;
 
                       return (
-                        <div 
+                        <div
                           key={repo.id}
                           onClick={() => handleSelect(repo.fullName)}
-                          className={`flex items-center justify-between p-3 cursor-pointer transition-colors border-l-2 ${
-                            isSelected 
-                              ? "bg-surface border-accent text-foreground font-bold" 
-                              : "border-transparent text-foreground/80 hover:bg-surface hover:text-foreground"
+                          className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors rounded-lg text-sm ${
+                            isSelected
+                              ? "bg-accent/5 text-foreground font-medium"
+                              : "text-foreground/70 hover:bg-background hover:text-foreground"
                           }`}
                         >
                           <div className="flex flex-col">
                             <span className="truncate">{repo.fullName}</span>
-                            {repo.private && <span className="text-[10px] text-accent uppercase tracking-wider mt-1">Private</span>}
+                            {repo.private && <span className="text-[10px] text-accent mt-0.5">Private</span>}
                           </div>
-                          {isSelected && <Check size={16} className="text-accent" />}
+                          {isSelected && <Check size={15} className="text-accent" />}
                         </div>
                       );
                     })}

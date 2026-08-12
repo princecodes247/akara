@@ -21,7 +21,7 @@ export default function ProjectDetailsPage() {
   const error = projectError?.message || releasesError?.message || "";
 
   const [activeTab, setActiveTab] = useState<"artifacts" | "releases" | "integrations">("releases");
-  
+
   // Track which artifact's assets are expanded
   const [expandedArtifacts, setExpandedArtifacts] = useState<Record<string, boolean>>({});
 
@@ -46,10 +46,7 @@ export default function ProjectDetailsPage() {
       });
 
       if (!res.ok) throw new Error("Failed to set release as current");
-      
-      // Update local state snappy-style (react query invalidate will also run if we used mutation, but let's just invalidate via mutation hook next time)
-      
-      // Revalidate frontend cache
+
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,8 +54,6 @@ export default function ProjectDetailsPage() {
       });
 
       alert("Release set as current successfully!");
-      // We should probably rely on query client invalidation, so let's reload or just let it be since we didn't use the mutation here
-      // But actually, it's better to use mutation.
       window.location.reload();
     } catch (err: any) {
       alert(err.message);
@@ -76,8 +71,7 @@ export default function ProjectDetailsPage() {
       });
 
       if (!res.ok) throw new Error("Failed to change release status");
-      
-      // Revalidate frontend cache
+
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,7 +94,6 @@ export default function ProjectDetailsPage() {
 
       if (!res.ok) throw new Error("Failed to delete release mapping");
 
-      // Revalidate frontend cache
       await fetch(`/api/revalidate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,9 +104,8 @@ export default function ProjectDetailsPage() {
       alert(err.message);
     }
   };
-console.log({releases})
-  // Filter lists based on new Core UX definitions
-  // 1. Artifacts: Raw GitHub releases, sorted newest first
+  console.log({releases})
+  // Filter lists based on Core UX definitions
   const artifacts = useMemo(() => {
     return [...releases].sort((a: any, b: any) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
@@ -140,9 +132,9 @@ console.log({releases})
 
   if (error || !project) {
     return (
-      <div className="p-12">
-        <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-6 font-mono rounded-xl">
-          ERROR: {error || "Project not found"}
+      <div className="p-10">
+        <div className="bg-red-500/5 border border-red-500/20 text-red-400 p-6 rounded-xl text-sm">
+          Error: {error || "Project not found"}
         </div>
       </div>
     );
@@ -150,85 +142,84 @@ console.log({releases})
 
   return (
     <div className="animate-in fade-in duration-500 flex flex-col h-full bg-background min-h-screen">
-      {/* Header Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 border-b border-border/50 bg-surface/10">
-        <Link 
-          href="/dashboard"
-          className="md:col-span-3 flex items-center justify-center p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 bg-surface/30 hover:bg-surface/50 text-foreground transition-colors group"
-        >
-          <div className="flex items-center gap-2 font-mono font-bold uppercase tracking-wider text-sm">
-            <ArrowLeft size={16} className="text-accent group-hover:-translate-x-1 transition-transform" />
-            Back to Projects
-          </div>
-        </Link>
-        <div className="md:col-span-4 p-5 sm:p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/50 flex flex-col justify-center bg-surface/10">
-          <div className="flex items-center justify-between gap-4 w-full overflow-hidden">
-            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter break-words" title={project.name}>{project.name}</h1>
+      {/* Header */}
+      <div className="px-6 md:px-10 pt-8 pb-6 border-b border-border">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 max-w-7xl mx-auto w-full">
+          <div className="flex-1 min-w-0">
             <Link
-              href={`/dashboard/projects/${id}/settings`}
-              className="text-foreground/40 hover:text-accent transition-colors shrink-0 p-2 hover:bg-surface/30 rounded-lg"
-              title="Project Settings"
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors mb-3"
             >
-              <Settings size={20} />
+              <ArrowLeft size={14} />
+              Projects
             </Link>
-          </div>
-        </div>
-        <div className="md:col-span-5 p-5 sm:p-8 md:p-12 flex flex-col justify-center">
-          <div className="space-y-4">
-            <div className="flex items-start gap-4">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent shrink-0 mt-1 w-24">Sources</span>
-              <div className="flex flex-wrap gap-2">
-                {project.sourceRepos?.map((repo: string) => (
-                  <span key={repo} className="text-xs font-mono bg-surface/50 px-3 py-1.5 rounded-md text-foreground/80 border border-border/50 flex items-center shadow-sm">
-                    <Server size={12} className="mr-2 opacity-70" />
-                    {repo}
-                  </span>
-                ))}
-              </div>
+            <div className="flex items-center gap-3">
+              <h1 className="font-display text-3xl md:text-4xl font-light tracking-tight text-foreground truncate" title={project.name}>
+                {project.name}
+              </h1>
+              <Link
+                href={`/dashboard/projects/${id}/settings`}
+                className="text-foreground-muted hover:text-foreground transition-colors p-1.5 hover:bg-surface rounded-lg shrink-0"
+                title="Project Settings"
+              >
+                <Settings size={18} />
+              </Link>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent shrink-0 w-24">Target Repo</span>
-              {project.targetRepo ? (
-                <span className="text-xs font-mono bg-accent/10 px-3 py-1.5 rounded-md text-accent border border-accent/20 flex items-center shadow-sm">
-                  <GitMerge size={12} className="mr-2" />
-                  {project.targetRepo}
-                </span>
-              ) : (
-                <span className="text-xs font-mono bg-surface/30 px-3 py-1.5 rounded-md text-foreground/40 border border-border/50 flex items-center italic">
-                  Internal Releases Only
-                </span>
-              )}
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-foreground-muted">Sources</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {project.sourceRepos?.map((repo: string) => (
+                    <span key={repo} className="text-xs font-mono bg-surface px-2.5 py-1 rounded-md text-foreground/70 border border-border inline-flex items-center gap-1.5">
+                      <Server size={10} className="opacity-50" />
+                      {repo}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-foreground-muted">Target</span>
+                {project.targetRepo ? (
+                  <span className="text-xs font-mono bg-accent/5 px-2.5 py-1 rounded-md text-accent border border-accent/15 inline-flex items-center gap-1.5">
+                    <GitMerge size={10} />
+                    {project.targetRepo}
+                  </span>
+                ) : (
+                  <span className="text-xs text-foreground-muted/60 italic">Internal only</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation Tabs - Modern Animated Pills */}
-      <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 max-w-7xl mx-auto w-full overflow-x-auto">
-        <div className="flex gap-2 bg-surface/30 p-1.5 rounded-xl w-fit border border-border/50 min-w-max">
+      {/* Tabs */}
+      <div className="px-6 md:px-10 pt-5 pb-3 max-w-7xl mx-auto w-full overflow-x-auto">
+        <div className="flex gap-1 bg-surface/60 p-1 rounded-xl w-fit border border-border min-w-max">
           {[
             { id: "releases", label: "Releases", count: customReleases.length, icon: Rocket },
             { id: "artifacts", label: "Artifacts", count: artifacts.length, icon: Package },
-            { id: "integrations", label: "OTA Integrations", count: 1, icon: FileCode }
+            { id: "integrations", label: "Integrations", count: 1, icon: FileCode }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`relative px-6 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors rounded-lg flex items-center gap-2 ${
-                activeTab === tab.id ? "text-background" : "text-foreground/60 hover:text-foreground hover:bg-surface/50"
+              className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-lg flex items-center gap-2 ${
+                activeTab === tab.id ? "text-foreground" : "text-foreground-muted hover:text-foreground"
               }`}
             >
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-accent rounded-lg shadow-md"
+                  className="absolute inset-0 bg-surface rounded-lg border border-border shadow-sm"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                 />
               )}
               <span className="relative z-10 flex items-center gap-2">
-                <tab.icon size={16} />
+                <tab.icon size={15} />
                 {tab.label}
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? "bg-background/20 text-background" : "bg-surface text-foreground/50"}`}>
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? "bg-foreground/10 text-foreground" : "text-foreground-muted/60"}`}>
                   {tab.count}
                 </span>
               </span>
@@ -237,100 +228,96 @@ console.log({releases})
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="px-5 sm:px-8 pb-12 flex-1 max-w-7xl mx-auto w-full">
+      {/* Content */}
+      <div className="px-6 md:px-10 pb-12 flex-1 max-w-7xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {activeTab === "artifacts" ? (
-            /* ARTIFACTS SCREEN */
-            <motion.div 
+            <motion.div
               key="artifacts"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 pt-4"
             >
-              <div className="flex justify-between items-end mb-6 border-b border-border/30 pb-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter">Raw Artifacts</h2>
-                  <p className="font-mono text-xs text-foreground/50 mt-1">Found in source repositories. Use these to build a release.</p>
-                </div>
+              <div className="mb-4">
+                <h2 className="text-lg font-medium text-foreground">Raw artifacts</h2>
+                <p className="text-sm text-foreground-muted mt-0.5">Found in source repositories. Use these to build a release.</p>
               </div>
 
               {artifacts.length === 0 ? (
-                <div className="text-center p-12 border border-border/50 border-dashed rounded-2xl font-mono text-foreground/50 bg-surface/5">
+                <div className="text-center p-12 card border-dashed text-foreground-muted text-sm">
                   No artifacts found in source repositories.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3">
                   {artifacts.map(art => {
                     const key = `${art.sourceRepo}-${art.id}`;
                     const isExpanded = !!expandedArtifacts[key];
                     const assetsCount = art.assets?.length || 0;
-                    
+
                     return (
-                      <div 
-                        key={key} 
-                        className="group border border-border/50 bg-surface/20 hover:bg-surface/30 rounded-xl transition-all overflow-hidden cursor-pointer shadow-sm hover:shadow-md"
+                      <div
+                        key={key}
+                        className="group card hover:border-[#2a2a2a] transition-all overflow-hidden cursor-pointer"
                         onClick={() => toggleArtifactExpanded(key)}
                       >
-                        <div className="p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="p-4 md:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div>
                             <div className="flex items-center gap-3">
-                              <span className="font-mono font-black text-xl text-foreground tracking-tight">{art.tag}</span>
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-surface text-foreground/60 uppercase border border-border/50">
+                              <span className="font-mono font-semibold text-lg text-foreground tracking-tight">{art.tag}</span>
+                              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-surface text-foreground-muted border border-border">
                                 {art.sourceRepo}
                               </span>
                             </div>
-                            <div className="font-mono text-xs text-foreground/40 mt-1.5 flex items-center gap-4">
+                            <div className="text-xs text-foreground-muted mt-1.5 flex items-center gap-4">
                               <span>Published: {art.publishedAt ? new Date(art.publishedAt).toLocaleDateString() : "Draft"}</span>
-                              <span className="flex items-center gap-1 text-accent/80"><FileCode size={12}/> {assetsCount} Assets</span>
+                              <span className="flex items-center gap-1 text-foreground-muted"><FileCode size={12}/> {assetsCount} assets</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                          <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
                             <Link
                               href={`/dashboard/projects/${id}/releases/${art.id}/edit`}
                               onClick={(e) => e.stopPropagation()}
-                              className="font-mono text-xs uppercase border border-border/50 hover:border-accent/50 text-foreground px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm flex-1 md:flex-none"
+                              className="btn-secondary text-xs"
                             >
-                              <Plus size={12} strokeWidth={2} />
+                              <Plus size={12} />
                               Compose
                             </Link>
                             <button
                               onClick={(e) => toggleArtifactExpanded(key, e)}
-                              className="p-2 text-foreground/40 hover:text-foreground transition-colors rounded-lg hover:bg-surface"
+                              className="p-2 text-foreground-muted hover:text-foreground transition-colors rounded-lg hover:bg-surface"
                             >
-                              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                             </button>
                           </div>
                         </div>
 
-                        {/* Expandable asset list */}
                         <AnimatePresence>
                           {isExpanded && (
-                            <motion.div 
+                            <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden"
                             >
-                              <div className="border-t border-border/30 bg-black/20 p-4 sm:p-6">
-                                <div className="font-mono text-xs font-bold text-accent uppercase tracking-wider mb-3 flex items-center gap-2">
-                                  <Package size={14} /> Available Assets
+                              <div className="border-t border-border bg-background/50 p-4 md:p-5">
+                                <div className="text-xs font-medium text-foreground-muted mb-3 flex items-center gap-2">
+                                  <Package size={13} /> Available assets
                                 </div>
                                 {assetsCount > 0 ? (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                     {art.assets.map((asset: any) => (
-                                      <div key={asset.id} className="flex items-center gap-3 p-3 bg-surface/40 rounded-lg border border-border/30 font-mono text-xs text-foreground/80 hover:border-border/60 transition-colors">
-                                        <div className="p-1.5 bg-background rounded-md text-accent"><FileCode size={12} /></div>
+                                      <div key={asset.id} className="flex items-center gap-3 p-3 bg-surface/60 rounded-lg border border-border text-xs text-foreground/70 hover:border-[#2a2a2a] transition-colors">
+                                        <div className="p-1.5 bg-background rounded-md text-foreground-muted"><FileCode size={12} /></div>
                                         <span className="truncate" title={asset.name}>{asset.name}</span>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="font-mono text-xs text-foreground/40 italic">No asset files linked to this artifact.</p>
+                                  <p className="text-xs text-foreground-muted/60 italic">No asset files linked to this artifact.</p>
                                 )}
                               </div>
                             </motion.div>
@@ -343,78 +330,75 @@ console.log({releases})
               )}
             </motion.div>
           ) : activeTab === "releases" ? (
-            /* AKARA RELEASES SCREEN */
-            <motion.div 
+            <motion.div
               key="releases"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 pt-4"
             >
-              <div className="flex justify-between items-end mb-6 border-b border-border/30 pb-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter">Akara Releases</h2>
-                  <p className="font-mono text-xs text-foreground/50 mt-1">Curated and staged releases ready for your users.</p>
-                </div>
+              <div className="mb-4">
+                <h2 className="text-lg font-medium text-foreground">Akara releases</h2>
+                <p className="text-sm text-foreground-muted mt-0.5">Curated and staged releases ready for your users.</p>
               </div>
 
               {customReleases.length === 0 ? (
-                <div className="text-center p-16 border border-border/50 border-dashed rounded-2xl flex flex-col items-center justify-center bg-surface/5">
-                  <Rocket className="text-accent/30 mb-4" size={48} />
-                  <h3 className="font-mono font-bold text-lg mb-2 uppercase tracking-wide">No Releases Created</h3>
-                  <p className="text-sm font-mono text-foreground/50 max-w-md mb-6">
-                    You haven't customized any releases yet. Go to the "Artifacts" tab to select raw elements and compose a Release.
+                <div className="text-center p-16 card border-dashed flex flex-col items-center justify-center">
+                  <Rocket className="text-foreground-muted/30 mb-4" size={40} />
+                  <h3 className="font-medium text-foreground text-lg mb-2">No releases yet</h3>
+                  <p className="text-sm text-foreground-muted max-w-md mb-6">
+                    You haven't customized any releases yet. Go to the "Artifacts" tab to select raw elements and compose a release.
                   </p>
-                  <button 
+                  <button
                     onClick={() => setActiveTab("artifacts")}
-                    className="font-mono text-sm uppercase bg-surface text-foreground px-6 py-3 rounded-xl border border-border hover:bg-surface/80 transition-colors"
+                    className="btn-secondary"
                   >
-                    Browse Artifacts
+                    Browse artifacts
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-4">
                   {customReleases.map(rel => (
-                    <div key={rel.id} className="border border-border/50 bg-surface/10 rounded-2xl p-4 sm:p-6 flex flex-col gap-6 shadow-sm relative overflow-hidden">
+                    <div key={rel.id} className="card p-5 md:p-6 flex flex-col gap-5 relative overflow-hidden">
                       {rel.isCurrent && (
                         <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl -mr-10 -mt-10 rounded-full pointer-events-none"></div>
                       )}
-                      
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/30 pb-5 z-10">
+
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-5 z-10">
                         <div>
                           <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
-                            <h3 className="text-xl md:text-2xl font-black tracking-tight text-foreground uppercase break-words w-full md:w-auto">
+                            <h3 className="font-display text-xl md:text-2xl font-normal tracking-tight text-foreground break-words w-full md:w-auto">
                               {rel.customTitle || rel.title || rel.name}
                             </h3>
                             <div className="flex gap-2">
                               {rel.isCurrent && (
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-accent/10 text-accent border border-accent/20 uppercase">
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/15">
                                   Current
                                 </span>
                               )}
-                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase border ${
-                                rel.status === "public" 
-                                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                                  : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize border ${
+                                rel.status === "public"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/15"
+                                  : "bg-amber-500/10 text-amber-400 border-amber-500/15"
                               }`}>
                                 {rel.status}
                               </span>
                             </div>
                           </div>
-                          <div className="font-mono text-xs text-foreground/40 mt-2 uppercase flex items-center gap-4">
-                            <span>Target Tag: {rel.tag}</span>
+                          <div className="text-xs text-foreground-muted mt-2 flex items-center gap-4">
+                            <span>Tag: {rel.tag}</span>
                             {rel.status === "public" && (
                               <>
-                                <span className="text-foreground/20">|</span>
+                                <span className="text-foreground-muted/30">·</span>
                                 <a
                                   href={`/p/${project.slug || id}${rel.isCurrent ? '' : `/releases/${rel.id}`}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 normal-case font-bold"
+                                  className="text-accent hover:text-accent/80 transition-colors flex items-center gap-1.5 font-medium"
                                 >
-                                  <Globe size={14} />
-                                  View Release Page
+                                  <Globe size={12} />
+                                  View page
                                 </a>
                               </>
                             )}
@@ -424,101 +408,95 @@ console.log({releases})
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap w-full md:w-auto">
                           <Link
                             href={`/dashboard/projects/${id}/releases/${rel.id}/edit`}
-                            className="font-mono text-xs border border-border/50 bg-background px-4 py-2.5 rounded-lg hover:bg-surface text-foreground hover:text-accent transition-colors flex items-center justify-center gap-2 flex-1 md:flex-none"
+                            className="btn-secondary text-xs justify-center"
                           >
-                            <Edit3 size={14} />
-                            Edit Release
+                            <Edit3 size={13} />
+                            Edit
                           </Link>
-                          
+
                           <div className="flex gap-2 flex-1 sm:flex-none">
                             <button
                               onClick={() => handleToggleVisibility(rel.id, rel.status)}
-                              className="font-mono text-xs border border-border/50 bg-background px-4 py-2.5 rounded-lg hover:bg-surface text-foreground hover:text-accent transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-none"
+                              className="btn-secondary text-xs flex-1 sm:flex-none justify-center"
                             >
                               {rel.status === "public" ? (
-                                <>
-                                  <EyeOff size={14} /> Make Draft
-                                </>
+                                <><EyeOff size={13} /> Draft</>
                               ) : (
-                                <>
-                                  <Eye size={14} /> Make Public
-                                </>
+                                <><Eye size={13} /> Public</>
                               )}
                             </button>
 
                             <button
                               onClick={() => handleSetCurrent(rel.id)}
                               disabled={rel.isCurrent}
-                              className={`font-mono text-xs border px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-none ${
-                                rel.isCurrent 
-                                  ? "bg-accent/5 border-accent/10 text-accent/40 cursor-not-allowed"
-                                  : "border-border/50 bg-background hover:bg-emerald-500/10 text-foreground hover:text-emerald-500 hover:border-emerald-500/30"
+                              className={`btn-secondary text-xs flex-1 sm:flex-none justify-center ${
+                                rel.isCurrent ? "opacity-40 cursor-not-allowed" : "hover:text-emerald-400 hover:border-emerald-500/20"
                               }`}
                             >
-                              <CheckCircle size={14} />
-                              Set Current
+                              <CheckCircle size={13} />
+                              {rel.isCurrent ? "Current" : "Set current"}
                             </button>
 
                             <button
                               onClick={() => handleDeleteRelease(rel.id)}
-                              className="font-mono text-xs border border-red-500/20 bg-background px-4 py-2.5 rounded-lg hover:bg-red-500/10 text-red-500/80 hover:text-red-500 transition-colors flex items-center justify-center gap-2 flex-none"
+                              className="btn-secondary text-xs text-red-400/70 hover:text-red-400 hover:border-red-500/20 hover:bg-red-500/5 flex-none justify-center"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      {/* Staged custom assets list */}
+                      {/* Custom assets */}
                       {rel.customAssets && rel.customAssets.length > 0 && (
                         <div className="z-10">
-                          <button 
+                          <button
                             onClick={(e) => toggleArtifactExpanded(`release-${rel.id}`, e)}
-                            className="flex items-center justify-between w-full font-mono text-xs font-bold text-foreground/50 uppercase tracking-wider hover:text-foreground transition-colors group"
+                            className="flex items-center justify-between w-full text-xs text-foreground-muted hover:text-foreground transition-colors group"
                           >
-                            <span className="flex items-center gap-2">
-                              <Package size={14} className="group-hover:text-accent transition-colors" /> 
-                              Release Assets ({rel.customAssets.length})
+                            <span className="flex items-center gap-2 font-medium">
+                              <Package size={13} className="group-hover:text-accent transition-colors" />
+                              Release assets ({rel.customAssets.length})
                             </span>
-                            {expandedArtifacts[`release-${rel.id}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {expandedArtifacts[`release-${rel.id}`] ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                           </button>
-                          
+
                           <AnimatePresence>
                             {expandedArtifacts[`release-${rel.id}`] && (
-                              <motion.div 
+                              <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.2 }}
                                 className="overflow-hidden"
                               >
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-4">
-                            {rel.customAssets.map((asset: any) => (
-                              <div key={asset.id} className="border border-border/40 bg-background/50 rounded-lg p-3 flex flex-col gap-2 font-mono text-xs hover:border-border/80 transition-colors">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 overflow-hidden pr-2">
-                                    <FileCode size={14} className="text-accent shrink-0" />
-                                    <span className="font-bold truncate text-foreground/90">{asset.name}</span>
-                                  </div>
-                                  {asset.tag && (
-                                    <span className="text-[9px] shrink-0 font-bold px-1.5 py-0.5 rounded bg-surface text-accent/80 border border-border/50 uppercase">
-                                      {asset.tag}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-[9px] text-foreground/40 font-normal truncate">
-                                    src: {asset.sourceRepo} @ {asset.sourceReleaseId}
-                                  </span>
-                                  {rel.downloadCounts && rel.downloadCounts[asset.id] !== undefined && (
-                                    <div className="flex items-center gap-1 text-[10px] text-accent/80 font-mono font-bold bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
-                                      <Download size={10} />
-                                      {rel.downloadCounts[asset.id]}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-3">
+                                  {rel.customAssets.map((asset: any) => (
+                                    <div key={asset.id} className="border border-border bg-background/50 rounded-lg p-3 flex flex-col gap-2 text-xs hover:border-[#2a2a2a] transition-colors">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 overflow-hidden pr-2">
+                                          <FileCode size={13} className="text-foreground-muted shrink-0" />
+                                          <span className="font-medium truncate text-foreground/80">{asset.name}</span>
+                                        </div>
+                                        {asset.tag && (
+                                          <span className="text-[9px] shrink-0 font-medium px-1.5 py-0.5 rounded bg-surface text-foreground-muted border border-border">
+                                            {asset.tag}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center justify-between mt-0.5">
+                                        <span className="text-[10px] text-foreground-muted/60 truncate">
+                                          src: {asset.sourceRepo} @ {asset.sourceReleaseId}
+                                        </span>
+                                        {rel.downloadCounts && rel.downloadCounts[asset.id] !== undefined && (
+                                          <div className="flex items-center gap-1 text-[10px] text-accent/80 font-mono font-medium bg-accent/5 px-1.5 py-0.5 rounded border border-accent/10">
+                                            <Download size={10} />
+                                            {rel.downloadCounts[asset.id]}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                                  ))}
                                 </div>
                               </motion.div>
                             )}
@@ -531,33 +509,31 @@ console.log({releases})
               )}
             </motion.div>
           ) : (
-            /* INTEGRATIONS SCREEN */
+            /* Integrations */
             <motion.div
               key="integrations"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 pt-4"
             >
-              <div className="flex justify-between items-end mb-6 border-b border-border/30 pb-4">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter">OTA Integrations</h2>
-                  <p className="font-mono text-xs text-foreground/50 mt-1">Connect your applications to Akara to receive Over-The-Air updates.</p>
-                </div>
+              <div className="mb-4">
+                <h2 className="text-lg font-medium text-foreground">OTA integrations</h2>
+                <p className="text-sm text-foreground-muted mt-0.5">Connect your applications to Akara to receive over-the-air updates.</p>
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
-                <div className="border border-border/50 bg-surface/10 rounded-2xl p-6 shadow-sm">
-                  <h3 className="font-black text-lg uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <FileCode size={20} className="text-accent" /> Tauri (v1 / v2)
+              <div className="grid grid-cols-1 gap-4">
+                <div className="card p-6">
+                  <h3 className="font-medium text-base text-foreground mb-1.5 flex items-center gap-2">
+                    <FileCode size={18} className="text-accent" /> Tauri (v1 / v2)
                   </h3>
-                  <p className="text-sm font-mono text-foreground/60 mb-6">
-                    Tauri requires an updater endpoint that returns a specific JSON format containing the updater bundle URL and cryptographic signature. Use this endpoint in your <code className="bg-surface px-1.5 py-0.5 rounded text-accent">tauri.conf.json</code>.
+                  <p className="text-sm text-foreground-muted mb-5">
+                    Tauri requires an updater endpoint that returns a specific JSON format containing the updater bundle URL and cryptographic signature. Use this endpoint in your <code className="bg-surface px-1.5 py-0.5 rounded text-accent text-xs">tauri.conf.json</code>.
                   </p>
 
-                  <div className="bg-black/40 border border-border/30 rounded-xl p-4 overflow-x-auto">
-                    <pre className="font-mono text-xs text-foreground/80 leading-relaxed">
+                  <div className="bg-background border border-border rounded-xl p-4 overflow-x-auto">
+                    <pre className="font-mono text-xs text-foreground/70 leading-relaxed">
 {`{
   "updater": {
     "active": true,
@@ -570,10 +546,10 @@ console.log({releases})
 }`}
                     </pre>
                   </div>
-                  <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-xl flex items-start gap-3">
-                    <Sparkles className="text-accent shrink-0 mt-0.5" size={16} />
-                    <p className="text-xs font-mono text-foreground/70 leading-relaxed">
-                      <strong>Platform Tag Matching:</strong> Ensure the Platform Tags you enter in the Release Builder (e.g. <code className="text-accent">darwin-aarch64</code> or <code className="text-accent">windows-x86_64</code>) match the <code className="text-accent">{'{{target}}'}</code> placeholders Tauri sends automatically.
+                  <div className="mt-4 p-4 bg-accent/5 border border-accent/10 rounded-xl flex items-start gap-3">
+                    <Sparkles className="text-accent shrink-0 mt-0.5" size={15} />
+                    <p className="text-xs text-foreground-muted leading-relaxed">
+                      <strong className="text-foreground">Platform tag matching:</strong> Ensure the platform tags you enter in the release builder (e.g. <code className="text-accent">darwin-aarch64</code> or <code className="text-accent">windows-x86_64</code>) match the <code className="text-accent">{'{{target}}'}</code> placeholders Tauri sends automatically.
                     </p>
                   </div>
                 </div>

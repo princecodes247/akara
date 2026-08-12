@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, X, Save, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, X, Save, Trash2, Loader2 } from "lucide-react";
 import { RepoSelector } from "@/components/RepoSelector";
 import { config } from "@/lib/config";
 import { useProject, useUpdateProject, useDeleteProject } from "@/lib/api/hooks/useProjects";
@@ -55,7 +55,7 @@ export default function ProjectSettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) {
-      setError("Project Name is required.");
+      setError("Project name is required.");
       return;
     }
 
@@ -103,74 +103,64 @@ export default function ProjectSettingsPage() {
   return (
     <div className="animate-in fade-in duration-500 flex flex-col h-full bg-background text-foreground">
       {/* Header */}
-      <div className="grid grid-cols-1 md:grid-cols-12 border-b border-border">
-        <div className="md:col-span-4 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center bg-surface/30">
-          <h1 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-3">
-            <Settings className="text-accent" size={32} />
-            Settings
-          </h1>
-          <span className="font-mono text-xs text-accent uppercase tracking-wider mt-1">{originalName}</span>
-        </div>
-        <div className="md:col-span-5 p-8 md:p-12 border-b md:border-b-0 md:border-r border-border flex flex-col justify-center">
-          <p className="text-foreground/60 font-mono text-sm uppercase">Manage project details, target releases and sources.</p>
-        </div>
-        <Link 
+      <div className="px-6 md:px-10 pt-10 pb-8 border-b border-border">
+        <Link
           href={`/dashboard/projects/${id}`}
-          className="md:col-span-3 flex items-center justify-center p-8 md:p-12 bg-surface hover:bg-foreground hover:text-background text-foreground transition-colors group"
+          className="inline-flex items-center gap-1.5 text-sm text-foreground-muted hover:text-foreground transition-colors mb-4"
         >
-          <div className="flex items-center gap-2 font-mono font-bold uppercase tracking-wider text-sm">
-            <ArrowLeft size={16} className="text-accent group-hover:text-background" />
-            Back to Project
-          </div>
+          <ArrowLeft size={14} />
+          Back to project
         </Link>
+        <h1 className="font-display text-3xl md:text-4xl font-light tracking-tight text-foreground">Settings</h1>
+        <p className="text-foreground-muted text-sm mt-1.5">{originalName}</p>
       </div>
 
-      <div className="p-8 md:p-12 flex-1 max-w-4xl mx-auto w-full space-y-12">
+      <div className="p-6 md:p-10 flex-1 max-w-3xl mx-auto w-full space-y-10">
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/50 text-red-500 font-mono text-sm">
-            ERROR: {error}
+          <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-400 text-sm rounded-xl">
+            {error}
           </div>
         )}
 
-        {/* Configurations Form */}
+        {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-8">
-          <div className="glass-card p-8 space-y-8">
+          <div className="card-lg p-6 md:p-8 space-y-8">
             <div>
-              <label className="block text-sm font-bold font-mono text-foreground mb-2 uppercase tracking-wider">
-                Rename Project
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Project name
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Core Engine Releases"
-                className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-foreground-muted/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
                 required
               />
             </div>
 
             <div className="border-t border-border pt-8">
-              <label className="block text-sm font-bold font-mono text-foreground mb-2 uppercase tracking-wider">
-                Project URL Slug
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                URL slug
               </label>
-              <p className="text-foreground/60 text-xs mb-4 font-mono">
-                Used for public release URLs (e.g. akara.com/p/<b>{slug || 'your-slug'}</b>)
+              <p className="text-foreground-muted text-sm mb-4">
+                Used for public release URLs (e.g. akara.com/p/<strong>{slug || 'your-slug'}</strong>)
               </p>
               <input
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 placeholder="e.g. core-engine"
-                className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors"
+                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-foreground-muted/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
               />
             </div>
 
             <div className="border-t border-border pt-8">
-              <h3 className="text-sm font-bold font-mono text-foreground mb-4 uppercase tracking-wider border-l-2 border-accent pl-3">Visibility & Access</h3>
-              <div className="flex items-center justify-between bg-surface/30 border border-border p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-foreground mb-4">Visibility & access</h3>
+              <div className="flex items-center justify-between bg-surface/50 border border-border p-4 rounded-xl">
                 <div>
-                  <h4 className="font-bold font-mono text-sm uppercase tracking-wider text-foreground">Public Access</h4>
-                  <p className="text-xs font-mono text-foreground/60 mt-1">If disabled, public pages, OTA updates, and asset downloads will be blocked.</p>
+                  <h4 className="font-medium text-sm text-foreground">Public access</h4>
+                  <p className="text-xs text-foreground-muted mt-0.5">If disabled, public pages, OTA updates, and asset downloads will be blocked.</p>
                 </div>
                 <button
                   type="button"
@@ -183,44 +173,44 @@ export default function ProjectSettingsPage() {
             </div>
 
             <div className="border-t border-border pt-8">
-              <h3 className="text-sm font-bold font-mono text-foreground mb-4 uppercase tracking-wider border-l-2 border-accent pl-3">SEO & Metadata</h3>
-              <div className="space-y-6">
+              <h3 className="text-sm font-medium text-foreground mb-4">SEO & metadata</h3>
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold font-mono text-foreground/80 mb-2 uppercase tracking-wider">
-                    SEO Title
+                  <label className="block text-xs font-medium text-foreground-muted mb-2">
+                    SEO title
                   </label>
                   <input
                     type="text"
                     value={seoTitle}
                     onChange={(e) => setSeoTitle(e.target.value)}
                     placeholder={`e.g. ${name || 'Project'} Releases`}
-                    className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors text-sm"
+                    className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold font-mono text-foreground/80 mb-2 uppercase tracking-wider">
-                    SEO Description
+                  <label className="block text-xs font-medium text-foreground-muted mb-2">
+                    SEO description
                   </label>
                   <textarea
                     value={seoDescription}
                     onChange={(e) => setSeoDescription(e.target.value)}
                     placeholder={`Download official releases for ${name || 'this project'}.`}
-                    className="w-full bg-background border border-border px-4 py-3 font-mono text-foreground focus:outline-none focus:border-accent transition-colors text-sm min-h-[100px]"
+                    className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-foreground-muted/40 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all min-h-[100px] resize-y"
                   />
                 </div>
               </div>
             </div>
 
             <div className="border-t border-border pt-8">
-              <label className="block text-sm font-bold font-mono text-foreground mb-2 uppercase tracking-wider">
-                Source Repositories
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Source repositories
               </label>
-              <p className="text-foreground/60 text-xs mb-4 font-mono">
+              <p className="text-foreground-muted text-sm mb-4">
                 Select the repositories that act as the source of truth for your release assets.
               </p>
-              
-              <RepoSelector 
-                label="Search Source Repositories"
+
+              <RepoSelector
+                label="Search source repositories"
                 selected={sourceRepos}
                 onChange={(selected) => setSourceRepos(selected as string[])}
                 multiSelect={true}
@@ -228,17 +218,17 @@ export default function ProjectSettingsPage() {
 
               {sourceRepos.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-accent">Active Sources:</span>
-                  <div className="flex flex-col gap-2">
+                  <span className="text-xs text-foreground-muted">Active sources</span>
+                  <div className="flex flex-col gap-1.5">
                     {sourceRepos.map(repo => (
-                      <div key={repo} className="flex items-center justify-between bg-surface border border-border px-4 py-2">
-                        <span className="font-mono text-sm text-foreground/80">{repo}</span>
-                        <button 
-                          type="button" 
+                      <div key={repo} className="flex items-center justify-between bg-surface border border-border rounded-lg px-4 py-2.5">
+                        <span className="text-sm font-mono text-foreground/80">{repo}</span>
+                        <button
+                          type="button"
                           onClick={() => handleRemoveSource(repo)}
-                          className="text-foreground/40 hover:text-red-400 transition-colors"
+                          className="text-foreground-muted hover:text-red-400 transition-colors p-0.5"
                         >
-                          <X size={16} />
+                          <X size={14} />
                         </button>
                       </div>
                     ))}
@@ -248,15 +238,18 @@ export default function ProjectSettingsPage() {
             </div>
 
             <div className="border-t border-border pt-8">
-              <label className="block text-sm font-bold font-mono text-foreground mb-2 uppercase tracking-wider flex items-center gap-2">
-                Target Repository <span className="text-[10px] text-accent border border-accent px-1 py-0.5">OPTIONAL</span>
-              </label>
-              <p className="text-foreground/60 text-xs mb-4 font-mono">
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="block text-sm font-medium text-foreground">
+                  Target repository
+                </label>
+                <span className="text-[10px] text-foreground-muted border border-border rounded px-1.5 py-0.5">Optional</span>
+              </div>
+              <p className="text-foreground-muted text-sm mb-4">
                 The repository where curated releases will be published. If empty, releases remain internal to Akara.
               </p>
-              
-              <RepoSelector 
-                label="Search or Create Target Repository"
+
+              <RepoSelector
+                label="Search or create target repository"
                 selected={targetRepo}
                 onChange={(selected) => setTargetRepo(selected as string)}
                 multiSelect={false}
@@ -265,37 +258,37 @@ export default function ProjectSettingsPage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-border">
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={saving || deleting}
-              className="flex items-center gap-3 bg-foreground text-background px-8 py-4 font-bold font-mono uppercase tracking-wider brutalist-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary text-base px-8 py-3"
             >
               {saving ? (
-                <div className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin" />
+                <Loader2 size={18} className="animate-spin" />
               ) : (
                 <Save size={18} />
               )}
-              {saving ? "SAVING CONFIGS..." : "SAVE CHANGES"}
+              {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>
 
         {/* Danger Zone */}
-        <div className="border border-red-500/30 bg-red-500/5 p-8 space-y-6 rounded-sm">
+        <div className="border border-red-500/15 bg-red-500/3 p-6 md:p-8 space-y-5 rounded-xl">
           <div>
-            <h2 className="text-lg font-black uppercase text-red-500 tracking-tight flex items-center gap-2">
-              <Trash2 size={20} />
-              Danger Zone
+            <h2 className="text-base font-medium text-red-400 flex items-center gap-2">
+              <Trash2 size={18} />
+              Danger zone
             </h2>
-            <p className="text-foreground/60 font-mono text-xs uppercase mt-1">
+            <p className="text-foreground-muted text-sm mt-1">
               Actions here are irreversible and will delete this project along with all release staging data.
             </p>
           </div>
 
-          <div className="pt-4 border-t border-red-500/20 space-y-4">
-            <label className="block font-mono text-xs text-foreground/80 uppercase">
-              To verify, type the project name <span className="text-red-500 font-bold">"{originalName}"</span> below:
+          <div className="pt-4 border-t border-red-500/10 space-y-3">
+            <label className="block text-sm text-foreground/80">
+              To verify, type the project name <span className="text-red-400 font-medium">"{originalName}"</span> below:
             </label>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
@@ -303,15 +296,15 @@ export default function ProjectSettingsPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Type project name to confirm"
-                className="flex-1 bg-background border border-red-500/30 focus:border-red-500 px-4 py-2 font-mono text-sm text-foreground outline-none"
+                className="flex-1 bg-background border border-red-500/15 focus:border-red-500/40 rounded-lg px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-foreground-muted/40 transition-colors"
               />
               <button
                 type="button"
                 disabled={deleting || saving || deleteConfirmText !== originalName}
                 onClick={handleDelete}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold font-mono text-xs uppercase px-6 py-3 tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                className="bg-red-600 hover:bg-red-700 text-white font-medium text-sm px-6 py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
-                {deleting ? "DELETING..." : "DELETE PROJECT"}
+                {deleting ? "Deleting..." : "Delete project"}
               </button>
             </div>
           </div>

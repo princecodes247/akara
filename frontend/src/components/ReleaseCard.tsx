@@ -35,105 +35,105 @@ export function ReleaseCard({ release, projectId, onUpdateMapping }: ReleaseCard
     }
   };
 
-  const publishedDate = release.publishedAt 
-    ? new Date(release.publishedAt).toLocaleDateString("en-US", { 
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+  const publishedDate = release.publishedAt
+    ? new Date(release.publishedAt).toLocaleDateString("en-US", {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       })
     : "Draft / Not Published";
 
   return (
-    <div className="bg-background border border-border flex flex-col group hover:border-accent transition-colors">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 border-b border-border bg-surface/30">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold font-mono tracking-tight text-foreground group-hover:text-accent transition-colors">
+    <div className="card flex flex-col group hover:border-[#2a2a2a] transition-colors">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-border bg-surface/30 rounded-t-2xl">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-lg font-normal tracking-tight text-foreground group-hover:text-accent transition-colors">
             {release.title || release.tag}
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {release.draft && (
-              <span className="text-[10px] font-mono font-bold px-2 py-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 uppercase">
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/15">
                 Draft
               </span>
             )}
             {release.prerelease && (
-              <span className="text-[10px] font-mono font-bold px-2 py-1 bg-blue-500/10 text-blue-500 border border-blue-500/30 uppercase">
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/15">
                 Pre-release
               </span>
             )}
-            <span className="text-[10px] font-mono font-bold px-2 py-1 bg-surface text-foreground/80 border border-border uppercase">
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-surface text-foreground-muted border border-border">
               {release.tag}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 mt-4 md:mt-0 text-foreground/50 font-mono text-sm">
-          <Calendar size={14} />
+        <div className="flex items-center gap-2 mt-3 md:mt-0 text-foreground-muted text-sm">
+          <Calendar size={13} />
           {publishedDate}
         </div>
       </div>
 
-      <div className="p-6 flex-1">
-        <div className="flex items-center gap-2 text-accent font-mono text-xs uppercase font-bold tracking-wider mb-4 border border-accent/20 bg-accent/5 px-3 py-2 w-fit">
-          <GitBranch size={14} />
-          {release.sourceRepo}
+      <div className="p-5 flex-1">
+        <div className="flex items-center gap-2 text-foreground-muted text-xs mb-3">
+          <GitBranch size={13} />
+          <span className="font-mono">{release.sourceRepo}</span>
         </div>
-        
-        <div className="text-foreground/70 text-sm font-mono whitespace-pre-wrap line-clamp-3">
+
+        <div className="text-foreground/60 text-sm whitespace-pre-wrap line-clamp-3 leading-relaxed">
           {release.body || "No description provided."}
         </div>
       </div>
 
-      <div className="p-4 border-t border-border flex flex-col md:flex-row md:items-center justify-between bg-surface/30 gap-4">
-        <div className="flex items-center gap-2 font-mono text-xs text-foreground/60 uppercase">
-          <Box size={14} />
-          {release.assets?.length || 0} Assets
+      <div className="p-4 border-t border-border flex flex-col md:flex-row md:items-center justify-between bg-surface/20 gap-3 rounded-b-2xl">
+        <div className="flex items-center gap-2 text-xs text-foreground-muted">
+          <Box size={13} />
+          {release.assets?.length || 0} assets
         </div>
-        
-        <div className="flex items-center gap-4 flex-wrap">
-          <a 
-            href={release.url} 
-            target="_blank" 
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <a
+            href={release.url}
+            target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 font-mono text-xs font-bold text-foreground hover:text-accent uppercase tracking-wider transition-colors mr-2"
+            className="text-xs font-medium text-foreground-muted hover:text-foreground transition-colors mr-1"
           >
             View on GitHub
           </a>
 
           {onUpdateMapping && (
-            <div className="flex items-center gap-2 border-l border-border pl-4">
-              {updating && <Loader2 size={14} className="animate-spin text-accent" />}
-              
+            <div className="flex items-center gap-2 border-l border-border pl-3">
+              {updating && <Loader2 size={13} className="animate-spin text-accent" />}
+
               <button
                 disabled={updating}
                 onClick={() => handleUpdate({ status: release.status === "public" ? "draft" : "public" })}
-                className={`flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border transition-colors ${
-                  release.status === "public" 
-                    ? "bg-green-500/10 text-green-500 border-green-500/30 hover:bg-green-500/20" 
-                    : "bg-surface text-foreground/70 border-border hover:text-foreground"
+                className={`btn-secondary text-xs py-1 px-2.5 ${
+                  release.status === "public"
+                    ? "text-emerald-400 border-emerald-500/15"
+                    : ""
                 }`}
               >
-                <Globe size={14} />
+                <Globe size={13} />
                 {release.status === "public" ? "Public" : "Draft"}
               </button>
 
               <button
                 disabled={updating || release.isCurrent}
-                onClick={() => handleUpdate({ isCurrent: true, status: "public" })} // Auto-public when making current
-                className={`flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border transition-colors ${
-                  release.isCurrent 
-                    ? "bg-accent/10 text-accent border-accent/30 cursor-not-allowed" 
-                    : "bg-surface text-foreground/70 border-border hover:text-accent hover:border-accent/30"
+                onClick={() => handleUpdate({ isCurrent: true, status: "public" })}
+                className={`btn-secondary text-xs py-1 px-2.5 ${
+                  release.isCurrent
+                    ? "text-accent border-accent/15 opacity-50 cursor-not-allowed"
+                    : "hover:text-accent hover:border-accent/15"
                 }`}
               >
-                <CheckCircle size={14} />
-                {release.isCurrent ? "Current" : "Set Current"}
+                <CheckCircle size={13} />
+                {release.isCurrent ? "Current" : "Set current"}
               </button>
 
               {projectId && (
                 <Link
                   href={`/dashboard/projects/${projectId}/releases/${release.id}/edit`}
-                  className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3 py-1.5 border border-border bg-surface text-foreground/70 hover:text-accent hover:border-accent/30 transition-colors"
+                  className="btn-secondary text-xs py-1 px-2.5 hover:text-accent hover:border-accent/15"
                 >
-                  <Edit3 size={14} />
-                  Edit Staging
+                  <Edit3 size={13} />
+                  Edit
                 </Link>
               )}
             </div>

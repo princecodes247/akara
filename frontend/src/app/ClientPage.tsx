@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Terminal, Network, Settings } from "lucide-react";
+import { ArrowUpRight, Copy, GitBranch, Package, Zap } from "lucide-react";
 import { config } from "@/lib/config";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 
 export default function ClientPage({ isLoggedIn }: Props) {
   const router = useRouter();
+  const [copied, setCopied] = useState(false);
 
   const handleAction = () => {
     if (isLoggedIn) {
@@ -21,75 +22,109 @@ export default function ClientPage({ isLoggedIn }: Props) {
     }
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText("npx akara init");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Top Header / Nav */}
-      <header className="w-full border-b border-border bg-background/80 backdrop-blur-sm z-50 p-6 flex justify-between items-center">
-        <div className="font-mono text-xl font-bold tracking-tighter text-foreground">
-          AKARA<span className="text-accent">_</span>
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background">
+      {/* Nav */}
+      <header className="w-full z-50 px-6 md:px-12 py-6 flex justify-between items-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-cream/10 flex items-center justify-center">
+            <span className="text-cream text-xs font-bold font-display">a</span>
+          </div>
+          <span className="text-foreground text-sm font-medium tracking-tight">akara</span>
         </div>
-        <button 
+        <button
           onClick={handleAction}
-          className="font-mono text-sm border border-border px-4 py-2 hover:bg-surface transition-colors uppercase"
+          className="btn-secondary text-sm"
         >
-          {isLoggedIn ? "[Dashboard]" : "[Login]"}
+          {isLoggedIn ? "Dashboard" : "Sign in"}
+          <ArrowUpRight size={14} />
         </button>
       </header>
 
-      <main className="z-10 flex flex-col flex-1 px-6 md:px-24 py-24">
+      {/* Hero */}
+      <main className="z-10 flex flex-col flex-1 px-6 md:px-24 pt-16 md:pt-28 pb-24">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="max-w-4xl"
         >
-          <div className="font-mono text-accent text-sm mb-6 flex items-center gap-2">
-            <Terminal size={14} />
-            <span>sys.init("release_orchestration")</span>
-          </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]">
-            CONTROL YOUR <br />
-            <span className="text-accent">RELEASES.</span>
+          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl font-light tracking-tight leading-[0.92] text-foreground mb-8">
+            Stage your<br />
+            releases,{" "}
+            <span className="italic">curated.</span>
           </h1>
-          <p className="text-xl text-foreground/70 mb-12 max-w-2xl font-mono text-sm leading-relaxed">
-            &gt; Sync private repositories to public targets.<br/>
-            &gt; Curate changelogs before they go live.<br/>
-            &gt; Automate asset transfers via background workers.
+
+          <p className="text-foreground-muted text-base md:text-lg max-w-lg mb-12 leading-relaxed">
+            Sync private repositories to public targets. Curate changelogs
+            before they go live. Automate asset transfers.
           </p>
 
-          <button
-            onClick={handleAction}
-            className="group relative inline-flex items-center justify-between gap-6 bg-foreground text-background px-8 py-4 font-bold text-lg brutalist-shadow"
-          >
-            <span className="font-mono uppercase tracking-wider">
+          {/* CTA Pair */}
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={handleAction}
+              className="btn-primary text-base px-8 py-3.5"
+            >
               {isLoggedIn ? "Go to Dashboard" : "Get Started"}
-            </span>
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+              <ArrowUpRight size={16} />
+            </button>
+
+            <button
+              onClick={handleCopy}
+              className="terminal-chip py-3 px-5 cursor-pointer hover:border-[#2a2a2a] transition-colors"
+            >
+              <span className="terminal-accent">$</span>
+              <span>npx akara init</span>
+              <Copy size={14} className={copied ? "text-accent" : "text-foreground-muted/50"} />
+            </button>
+          </div>
         </motion.div>
 
         {/* Feature Grid */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-0 mt-32 border-y border-border"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-32 max-w-5xl"
         >
-          <div className="p-8 border-b md:border-b-0 md:border-r border-border hover:bg-surface transition-colors">
-            <Network className="text-accent mb-6" size={32} />
-            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Sync Repos</h3>
-            <p className="text-foreground/60 text-sm font-mono">Automated mirroring of private source releases to public facing repositories.</p>
-          </div>
-          <div className="p-8 border-b md:border-b-0 md:border-r border-border hover:bg-surface transition-colors">
-            <Settings className="text-accent mb-6" size={32} />
-            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Transform Data</h3>
-            <p className="text-foreground/60 text-sm font-mono">Strip internal notes, edit titles, and curate changelogs prior to publishing.</p>
-          </div>
-          <div className="p-8 hover:bg-surface transition-colors">
-            <Terminal className="text-accent mb-6" size={32} />
-            <h3 className="font-mono font-bold text-lg mb-3 uppercase tracking-tight">Asset Transfer</h3>
-            <p className="text-foreground/60 text-sm font-mono">Seamlessly move compiled binaries and assets across repos via background jobs.</p>
-          </div>
+          {[
+            {
+              icon: <GitBranch size={20} />,
+              title: "Sync repositories",
+              description: "Automated mirroring of private source releases to public-facing repositories.",
+            },
+            {
+              icon: <Package size={20} />,
+              title: "Transform data",
+              description: "Strip internal notes, edit titles, and curate changelogs prior to publishing.",
+            },
+            {
+              icon: <Zap size={20} />,
+              title: "Asset transfer",
+              description: "Seamlessly move compiled binaries and assets across repos via background jobs.",
+            },
+          ].map((feature, i) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
+              className="card p-6 md:p-8 group hover:border-[#2a2a2a] transition-colors"
+            >
+              <div className="text-foreground-muted mb-4 group-hover:text-accent transition-colors">
+                {feature.icon}
+              </div>
+              <h3 className="text-foreground font-medium text-base mb-2">{feature.title}</h3>
+              <p className="text-foreground-muted text-sm leading-relaxed">{feature.description}</p>
+            </motion.div>
+          ))}
         </motion.div>
       </main>
     </div>

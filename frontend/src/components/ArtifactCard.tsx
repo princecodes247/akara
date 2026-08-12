@@ -18,70 +18,69 @@ interface ArtifactCardProps {
 }
 
 export function ArtifactCard({ artifact, projectId }: ArtifactCardProps) {
-  const publishedDate = artifact.publishedAt 
-    ? new Date(artifact.publishedAt).toLocaleDateString("en-US", { 
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+  const publishedDate = artifact.publishedAt
+    ? new Date(artifact.publishedAt).toLocaleDateString("en-US", {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       })
     : "Not Published";
 
   return (
-    <div className="bg-surface/10 border border-border/50 flex flex-col group hover:border-border transition-colors">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 border-b border-border/40 bg-surface/20">
+    <div className="card flex flex-col group hover:border-[#2a2a2a] transition-colors">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b border-border bg-surface/20 rounded-t-2xl">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold font-mono tracking-tight text-foreground/80 group-hover:text-foreground transition-colors">
+          <h2 className="font-display text-base font-normal tracking-tight text-foreground/80 group-hover:text-foreground transition-colors">
             {artifact.title || artifact.tag}
           </h2>
           <div className="flex items-center gap-1.5">
             {artifact.draft && (
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 uppercase">
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/15">
                 Draft
               </span>
             )}
             {artifact.prerelease && (
-              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase">
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/15">
                 Pre-release
               </span>
             )}
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 bg-surface text-foreground/60 border border-border/50 uppercase">
+            <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-full bg-surface text-foreground-muted border border-border">
               {artifact.tag}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 mt-2 md:mt-0 text-foreground/45 font-mono text-xs">
+        <div className="flex items-center gap-2 mt-2 md:mt-0 text-foreground-muted text-xs">
           <Calendar size={12} />
           {publishedDate}
         </div>
       </div>
 
-      <div className="p-5 flex-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="p-4 flex-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-foreground/60 font-mono text-xs uppercase font-bold tracking-wider mb-2">
-            <GitBranch size={12} className="text-foreground/40" />
-            {artifact.sourceRepo}
+          <div className="flex items-center gap-2 text-foreground-muted text-xs mb-1.5">
+            <GitBranch size={12} className="opacity-60" />
+            <span className="font-mono">{artifact.sourceRepo}</span>
           </div>
-          
-          <div className="flex items-center gap-1.5 font-mono text-[11px] text-foreground/50 uppercase">
+          <div className="flex items-center gap-1.5 text-[11px] text-foreground-muted">
             <Box size={12} />
-            {artifact.assets?.length || 0} Assets
+            {artifact.assets?.length || 0} assets
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3 shrink-0">
-          <a 
-            href={artifact.url} 
-            target="_blank" 
+          <a
+            href={artifact.url}
+            target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-xs font-bold text-foreground/60 hover:text-foreground uppercase tracking-wider transition-colors mr-2"
+            className="text-xs font-medium text-foreground-muted hover:text-foreground transition-colors"
           >
             View on GitHub
           </a>
 
           <Link
             href={`/dashboard/projects/${projectId}/releases/${artifact.id}/edit`}
-            className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider px-3.5 py-2 border border-accent/30 bg-accent/5 text-accent hover:bg-accent hover:text-background transition-colors brutalist-shadow-sm"
+            className="btn-primary text-xs py-1.5 px-3"
           >
             <Edit3 size={12} />
-            Use in Release
+            Use in release
           </Link>
         </div>
       </div>

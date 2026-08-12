@@ -3,24 +3,29 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --color-cream: var(--cream);
+  --font-display: var(--font-fraunces), 'Georgia', serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-jetbrains), 'Fira Code', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 :root {
-  /* Browserbase strict brutalist theme */
-  --background: #000000;
-  --foreground: #f4f4f5;
-  --accent: #f95b29; /* Vibrant red/orange accent */
-  --accent-hover: #e04a1b;
-  --surface: #09090b;
-  --surface-hover: #18181b;
-  --border: #27272a;
+  /* Editorial premium dark palette */
+  --background: #0a0a0a;
+  --foreground: #e8e4de;
+  --foreground-muted: #8a8680;
+  --cream: #e8e4de;
+  --accent: #6B8AFF;
+  --accent-hover: #5A7AEE;
+  --surface: #141414;
+  --surface-hover: #1c1c1c;
+  --border: #1e1e1e;
 }
 
 body {
@@ -30,56 +35,112 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  /* Very subtle dot grid */
-  background-image: radial-gradient(var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
 }
 
-/* Brutalist utilities */
-.glass {
-  background: var(--background);
-  border: 1px solid var(--border);
-}
-
-.glass-card {
+/* ─── Card ─── */
+.card {
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: none; /* No soft shadows */
+  border-radius: 1rem;
 }
 
-/* Hard shadow for interactive elements */
-.brutalist-shadow {
-  box-shadow: 4px 4px 0px 0px var(--accent);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+.card-lg {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
 }
 
-.brutalist-shadow:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px var(--accent);
+/* ─── Buttons ─── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--cream);
+  color: var(--background);
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: #d4d0ca;
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Scrollbar */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--foreground-muted);
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background: var(--surface);
+  color: var(--foreground);
+  border-color: #2a2a2a;
+}
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Terminal Chip ─── */
+.terminal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--foreground-muted);
+}
+.terminal-chip .terminal-accent {
+  color: var(--accent);
+}
+
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
-  border-left: 1px solid var(--border);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: #2a2a2a;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #3a3a3a;
 }
 
-/* Tiptap Editor Styles */
+/* ─── Tiptap Editor ─── */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: var(--foreground);
-  opacity: 0.3;
+  color: var(--foreground-muted);
+  opacity: 0.5;
   pointer-events: none;
   height: 0;
 }
@@ -88,4 +149,14 @@ body {
 }
 .ProseMirror:focus {
   outline: none;
+}
+
+/* ─── Legacy compat aliases (for components not yet updated) ─── */
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+.brutalist-shadow {
+  /* Removed — no-op for compat */
 }

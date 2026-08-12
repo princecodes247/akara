@@ -13,7 +13,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // We rely on the Server Component to handle authentication
     setAuthorized(true);
   }, [router]);
 
@@ -30,53 +29,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <aside className="w-64 bg-background border-r border-border fixed h-full flex flex-col hidden md:flex z-40">
-        <div className="p-6 border-b border-border">
-          <h2 className="text-xl font-bold font-mono tracking-tighter text-foreground">
-            AKARA<span className="text-accent">_</span>
-          </h2>
+      <aside className="w-60 bg-background border-r border-border fixed h-full flex-col hidden md:flex z-40">
+        <div className="p-6 pb-8">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-cream/10 flex items-center justify-center">
+              <span className="text-cream text-xs font-bold font-display">a</span>
+            </div>
+            <span className="text-foreground text-sm font-medium tracking-tight">akara</span>
+          </Link>
         </div>
-        
-        <nav className="flex-1 py-6 flex flex-col">
+
+        <nav className="flex-1 px-3 flex flex-col gap-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-6 py-4 font-mono text-sm transition-colors border-l-2 ${
-                  isActive 
-                    ? "border-accent bg-surface text-foreground" 
-                    : "border-transparent text-foreground/60 hover:bg-surface-hover hover:text-foreground"
+                className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-surface text-foreground font-medium"
+                    : "text-foreground-muted hover:bg-surface hover:text-foreground"
                 }`}
               >
                 {item.icon}
-                <span className="uppercase tracking-wider">{item.name}</span>
+                <span>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-border">
-          <button 
+        <div className="p-3 border-t border-border">
+          <button
             onClick={() => {
-              // Wait, to actually clear an HttpOnly cookie we should have a logout endpoint.
-              // For now, redirecting to / will just redirect back to /dashboard which checks the cookie.
-              // We should probably hit a logout endpoint. 
-              window.location.href = `${config.apiUrl}/auth/logout`; // Or just let's create a logout logic if it doesn't exist. Actually, let's just clear the cookie if we had it, but it's HttpOnly. We need a backend route or we just set document.cookie.
-              // For now we'll do what we can on the client if it was not HttpOnly, but since it is, we really need a logout endpoint. We will redirect to /v1/auth/logout.
               window.location.href = `${config.apiUrl}/auth/logout`;
             }}
-            className="flex items-center gap-3 px-6 py-4 w-full font-mono text-sm text-foreground/60 hover:bg-surface hover:text-accent transition-colors uppercase tracking-wider text-left"
+            className="flex items-center gap-3 px-3 py-2.5 w-full text-sm text-foreground-muted hover:bg-surface hover:text-foreground transition-colors rounded-lg text-left"
           >
             <LogOut size={18} />
-            Sign Out
+            Sign out
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 md:ml-64 min-h-screen border-l border-border/50 flex flex-col">
+      <main className="flex-1 md:ml-60 min-h-screen flex flex-col">
         <div className="w-full flex-1">
           {children}
         </div>
