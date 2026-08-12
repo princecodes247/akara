@@ -133,6 +133,12 @@ export class ProjectsService {
       await cache.del(`project:public-data:${slug}`);
       await cache.del(`project:current-release:${slug}`);
     }
+    
+    // Evict internal API cache for this project's releases
+    const project = await db.collections.projects.findOne({ _id: new ObjectId(projectId) });
+    if (project && project.userId) {
+      await cache.del(`project:releases:${projectId}:${project.userId.toString()}`);
+    }
   }
 
   async getPublicProjectData(id: string) {
