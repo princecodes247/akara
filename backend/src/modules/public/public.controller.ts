@@ -388,6 +388,38 @@ export class PublicController {
       next(error);
     }
   }
+
+  async registerStoreRelease(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const body = req.body;
+
+      if (!body || !body.version) {
+        return res.status(400).json({ error: "Missing required 'version' parameter." });
+      }
+
+      const release = await projectsService.createStoreRelease(id, body);
+      res.status(201).json(release);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async getStoreReleases(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const releases = await projectsService.getStoreReleases(id);
+      res.json(releases);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const publicController = new PublicController();

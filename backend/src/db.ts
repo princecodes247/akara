@@ -45,12 +45,27 @@ const stagedReleaseSchema = createSchema("stagedReleases", {
   downloadCounts: mixed().optional(),
 });
 
+const storeReleaseSchema = createSchema("storeReleases", {
+  projectId: objectId(),
+  platform: literal("android", "ios").default("android"),
+  packageName: string(),
+  version: string(),
+  versionCode: mixed().optional(),
+  track: literal("internal", "alpha", "beta", "production").default("internal"),
+  status: literal("draft", "published", "in_progress", "halted").default("published"),
+  userFraction: mixed().optional(),
+  notes: string().optional(),
+  createdAt: string().optional(),
+  updatedAt: string().optional(),
+});
+
 // Define schemas
 export const schemas = defineSchemas({
   userSchema,
   projectSchema,
   releaseMappingSchema,
   stagedReleaseSchema,
+  storeReleaseSchema,
 });
 
 // Initialize client

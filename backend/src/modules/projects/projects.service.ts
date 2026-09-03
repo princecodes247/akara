@@ -671,6 +671,68 @@ export class ProjectsService {
     // Delete releaseMappings associated with this project
     await db.collections.releaseMappings.deleteMany({ projectId });
 
+    // Delete storeReleases associated with this project
+    await db.collections.storeReleases.deleteMany({ projectId });
+
+    return { success: true };
+  }
+
+  async createStoreRelease(projectIdOrSlug: string, data: {
+    platform?: "android" | "ios";
+    packageName?: string;
+    version: string;
+    versionCode?: any;
+    track?: "internal" | "alpha" | "beta" | "production";
+    status?: "draft" | "published" | "in_progress" | "halted";
+    userFraction?: any;
+    notes?: string;
+  }) {
+    const project = await this.getProjectById(projectIdOrSlug);
+    const now = new Date().toISOString();
+
+    const record = {
+      projectId: project._id,
+      platform: data.platform || "android",
+      packageName: data.packageName || "com.madebytrident.qlip",
+      version: data.version,
+      versionCode: data.versionCode || null,
+      track: data.track || "internal",
+      status: data.status || "published",
+      userFraction: data.userFraction ?? 1.0,
+      notes: data.notes || "",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const inserted = await db.collections.storeReleases.insertOne(record as any);
+    await this.evictProjectCache(project._id.toString(), project.slug);
+    return { id: inserted.insertedId.toString(), ...record };
+  }
+
+  async getStoreReleases(projectIdOrSlug: string) {
+    const project = await this.getProjectById(projectIdOrSlug);
+    const releases = await db.collections.storeReleases.find({ projectId: project._id });
+    releases.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return releases;
+  }
+
+  async updateStoreReleaseTrack(projectIdOrSlug: string, releaseId: string, data: {
+    track?: "internal" | "alpha" | "beta" | "production";
+    status?: "draft" | "published" | "in_progress" | "halted";
+    userFraction?: any;
+  }) {
+    const project = await this.getProjectById(projectIdOrSlug);
+    const updateObj: any = { updatedAt: new Date().toISOString() };
+    if (data.track) updateObj.track = data.track;
+    if (data.status) updateObj.status = data.status;
+    if (data.userFraction !== undefined) updateObj.userFraction = data.userFraction;
+
+    await db.collections.storeReleases.updateOne(
+      { _id: new ObjectId(releaseId), projectId: project._id },
+      { $set: updateObj }
+    );
+
+    await this.evictProjectCache(project._id.toString(), project.slug);
     return { success: true };
   }
 }

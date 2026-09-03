@@ -207,6 +207,33 @@ export class ProjectsController {
       next(error);
     }
   }
+
+  async getStoreReleases(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const releases = await projectsService.getStoreReleases(id);
+      res.json(releases);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
+
+  async updateStoreReleaseTrack(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id, releaseId } = req.params as { id: string; releaseId: string };
+      const { track, status, userFraction } = req.body;
+      await projectsService.updateStoreReleaseTrack(id, releaseId, { track, status, userFraction });
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const projectsController = new ProjectsController();

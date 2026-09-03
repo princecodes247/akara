@@ -28,3 +28,5 @@ publicRouter.get("/projects/:id/current", publicController.getCurrentRelease);
 publicRouter.get("/projects/:id/releases/:releaseId/assets/:assetId", publicController.downloadAsset);
 publicRouter.get("/projects/:id/updates/:platform/:currentVersion", publicController.getOtaUpdate);
 publicRouter.get("/projects/:id/updates/:framework/manifest", publicController.getFrameworkManifest);
+publicRouter.post("/projects/:id/releases", publicController.registerStoreRelease);
+publicRouter.get("/projects/:id/store-releases", publicController.getStoreReleases);
