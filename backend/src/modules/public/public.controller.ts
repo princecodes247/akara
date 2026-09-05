@@ -20,6 +20,106 @@ const getCachedCurrentRelease = cached(
   }
 );
 
+function matchesPlatform(tag: string | undefined, requestedPlatform: string, assetName?: string): boolean {
+  const t = (tag || "").toLowerCase().trim();
+  const req = requestedPlatform.toLowerCase().trim();
+  const name = (assetName || "").toLowerCase();
+
+  if (t === req) return true;
+
+  // Distinguish file extension types
+  const isMacArchiveOrInstaller = name.endsWith(".dmg") || name.endsWith(".pkg") || name.includes(".app.tar.gz");
+  const isWinArchiveOrInstaller = name.endsWith(".exe") || name.endsWith(".msi") || name.endsWith(".msi.zip") || name.endsWith(".nsis.zip");
+  const isLinuxArchiveOrPackage = name.endsWith(".appimage") || name.endsWith(".appimage.tar.gz") || name.endsWith(".deb") || name.endsWith(".rpm");
+
+  // Darwin / macOS
+  const isDarwinReq = req === "darwin" || req === "macos" || req === "osx" || req.startsWith("darwin-") || req.startsWith("macos-");
+  if (isDarwinReq) {
+    // If it is explicitly a Windows or Linux package and not a mac archive/installer, it cannot be Darwin
+    if ((isWinArchiveOrInstaller || isLinuxArchiveOrPackage) && !isMacArchiveOrInstaller) {
+      return false;
+    }
+
+    const isTaggedMac = t.startsWith("darwin") || t.startsWith("macos");
+    if (!isTaggedMac && !isMacArchiveOrInstaller) {
+      return false;
+    }
+
+    // Generic darwin / macos matches any mac asset
+    if (req === "darwin" || req === "macos" || req === "osx" || req === "darwin-universal" || req === "macos-universal") {
+      return true;
+    }
+
+    const isDarwinAarch64 = req === "darwin-aarch64" || req === "macos-arm64" || req === "darwin-arm64";
+    const isDarwinX86 = req === "darwin-x86_64" || req === "macos-x64" || req === "darwin-amd64";
+
+    // Universal builds run on both architectures
+    if (t.includes("universal") || name.includes("universal")) return true;
+
+    if (isDarwinAarch64 && (t.includes("aarch64") || t.includes("arm64") || name.includes("aarch64") || name.includes("arm64"))) {
+      return true;
+    }
+
+    if (isDarwinX86 && (t.includes("x86_64") || t.includes("x64") || name.includes("x86_64") || (name.includes("x64") && !name.includes("windows")))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Windows
+  const isWinReq = req === "windows" || req === "win" || req.startsWith("windows-") || req.startsWith("win-");
+  if (isWinReq) {
+    if ((isMacArchiveOrInstaller || isLinuxArchiveOrPackage) && !isWinArchiveOrInstaller) {
+      return false;
+    }
+
+    const isTaggedWin = t.startsWith("win");
+    if (!isTaggedWin && !isWinArchiveOrInstaller) {
+      return false;
+    }
+
+    if (req === "windows" || req === "win") {
+      return true;
+    }
+
+    const isWinX64 = req === "windows-x86_64" || req === "windows-x64" || req === "win-x64";
+    const isWinArm64 = req === "windows-arm64" || req === "win-arm64";
+
+    if (isWinX64 && (t.includes("x86_64") || t.includes("x64") || name.includes("x64") || name.includes("x86_64"))) return true;
+    if (isWinArm64 && (t.includes("arm64") || name.includes("arm64"))) return true;
+
+    return false;
+  }
+
+  // Linux
+  const isLinuxReq = req === "linux" || req.startsWith("linux-");
+  if (isLinuxReq) {
+    if ((isMacArchiveOrInstaller || isWinArchiveOrInstaller) && !isLinuxArchiveOrPackage) {
+      return false;
+    }
+
+    const isTaggedLinux = t.startsWith("linux");
+    if (!isTaggedLinux && !isLinuxArchiveOrPackage) {
+      return false;
+    }
+
+    if (req === "linux") {
+      return true;
+    }
+
+    const isLinuxX64 = req === "linux-x86_64" || req === "linux-x64" || req === "linux-amd64";
+    const isLinuxArm64 = req === "linux-aarch64" || req === "linux-arm64";
+
+    if (isLinuxX64 && (t.includes("x86_64") || t.includes("x64") || t.includes("amd64") || name.includes("amd64") || name.includes("x86_64"))) return true;
+    if (isLinuxArm64 && (t.includes("aarch64") || t.includes("arm64") || name.includes("arm64") || name.includes("aarch64"))) return true;
+
+    return false;
+  }
+
+  return false;
+}
+
 export class PublicController {
   getOpenApiSpec(req: Request, res: Response) {
     const spec = {
@@ -198,32 +298,93 @@ export class PublicController {
         return res.status(204).send(); // Client is up to date or version invalid
       }
 
-      // Find the specific asset for the requested platform
+      // Identify framework adapter
+      const framework = ((req.query.framework as string) || "tauri").toLowerCase();
+
+      // Find all assets matching the requested platform
       const assets = currentRelease.assets || [];
-      const platformAsset = assets.find((a: any) => a.tag === platform);
+      const matchingAssets = assets.filter((a: any) => matchesPlatform(a.tag, platform, a.name));
+
+      // Prioritize the best asset for updates:
+      // For Tauri, updater packages must be archives (.app.tar.gz for mac, .msi.zip/.nsis.zip for win, .appimage.tar.gz for linux)
+      let platformAsset = matchingAssets.find((a: any) => {
+        const n = (a.name || "").toLowerCase();
+        const isTauriArchive = n.includes(".app.tar.gz") || n.endsWith(".nsis.zip") || n.endsWith(".msi.zip") || n.endsWith(".appimage.tar.gz");
+        return framework === "tauri" ? (isTauriArchive && !!a.signature) : !!a.signature;
+      }) || matchingAssets.find((a: any) => {
+        const n = (a.name || "").toLowerCase();
+        const isTauriArchive = n.includes(".app.tar.gz") || n.endsWith(".nsis.zip") || n.endsWith(".msi.zip") || n.endsWith(".appimage.tar.gz");
+        return framework === "tauri" ? isTauriArchive : false;
+      }) || matchingAssets.find((a: any) => !!a.signature) || matchingAssets[0];
+
+      let signature: string | null = platformAsset?.signature?.trim() || null;
+
+      // 1. If no signature directly on asset, check latest.json
+      const latestJsonAsset = assets.find((a: any) => a.name === "latest.json");
+      if (!signature && latestJsonAsset && latestJsonAsset.url) {
+        try {
+          const manifestRes = await fetch(latestJsonAsset.url);
+          if (manifestRes.ok) {
+            const manifest = (await manifestRes.json()) as any;
+            if (manifest.platforms && typeof manifest.platforms === "object") {
+              let platData = manifest.platforms[platform];
+              if (!platData) {
+                if (platform === "darwin" || platform === "macos" || platform === "osx" || platform === "darwin-aarch64" || platform === "darwin-x86_64") {
+                  platData = manifest.platforms["darwin-aarch64"] || manifest.platforms["darwin-x86_64"] || manifest.platforms["darwin-universal"];
+                } else if (platform === "windows" || platform === "win" || platform === "windows-x86_64") {
+                  platData = manifest.platforms["windows-x86_64"] || manifest.platforms["windows-x64"];
+                } else if (platform === "linux" || platform === "linux-x86_64") {
+                  platData = manifest.platforms["linux-x86_64"] || manifest.platforms["linux-amd64"];
+                }
+              }
+
+              if (platData?.signature) {
+                signature = platData.signature.trim();
+                if (!platformAsset) {
+                  const fileName = decodeURIComponent(platData.url.substring(platData.url.lastIndexOf("/") + 1));
+                  const matchingAsset = assets.find((a: any) => a.name === fileName);
+                  platformAsset = matchingAsset || {
+                    name: fileName,
+                    url: platData.url,
+                    tag: platform,
+                    signature: signature
+                  };
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching/parsing latest.json manifest:", e);
+        }
+      }
+
+      // 2. If still no signature, look for matching .sig file in assets
+      if (!signature && platformAsset) {
+        const sigAsset = assets.find((a: any) => {
+          if (a.name === `${platformAsset.name}.sig`) return true;
+          if (platformAsset.name.endsWith(".sig")) return false;
+          if ((platform.startsWith("darwin") || platform === "darwin" || platform === "macos" || platformAsset.name.includes("universal")) && a.name.includes("universal") && a.name.endsWith(".sig")) {
+            return true;
+          }
+          return false;
+        });
+
+        if (sigAsset && sigAsset.url) {
+          try {
+            const sigRes = await fetch(sigAsset.url);
+            if (sigRes.ok) {
+              signature = (await sigRes.text()).trim();
+            } else {
+              console.error(`Failed to fetch signature from ${sigAsset.url}: ${sigRes.status} ${sigRes.statusText}`);
+            }
+          } catch (e) {
+            console.error("Error fetching signature file:", e);
+          }
+        }
+      }
 
       if (!platformAsset) {
         return res.status(204).send(); // No update for this specific platform
-      }
-
-      let signature: string | null = null;
-      // Try to find the matching signature file (e.g., app.tar.gz.sig)
-      const sigAsset = assets.find((a: any) => a.name === `${platformAsset.name}.sig`);
-      
-      if (sigAsset && sigAsset.url) {
-        try {
-          // sigAsset.url is either a direct GitHub release URL or a local Akara redirect URL
-          // fetch will follow redirects by default to get the raw string content
-          const sigRes = await fetch(sigAsset.url);
-          if (sigRes.ok) {
-            signature = await sigRes.text();
-            signature = signature.trim();
-          } else {
-            console.error(`Failed to fetch signature from ${sigAsset.url}: ${sigRes.status} ${sigRes.statusText}`);
-          }
-        } catch (e) {
-          console.error("Error fetching signature file:", e);
-        }
       }
 
       if (!signature) {
@@ -231,15 +392,15 @@ export class PublicController {
         return res.status(204).send(); // No signature -> no update
       }
 
-      // Identify framework adapter
-      const framework = (req.query.framework as string) || "tauri";
       let responsePayload: any;
 
       if (framework === "tauri") {
         responsePayload = {
-          version: currentRelease.tag,
+          version: releaseVersion || currentRelease.tag,
           notes: currentRelease.body || currentRelease.title,
           pub_date: currentRelease.publishedAt || new Date().toISOString(),
+          url: platformAsset.url,
+          signature: signature,
           platforms: {
             [platform]: {
               signature: signature,
@@ -248,18 +409,16 @@ export class PublicController {
           }
         };
       } else if (framework === "electron") {
-        // Placeholder for electron-updater or generic HTTP format
         responsePayload = {
           url: platformAsset.url,
           name: currentRelease.title || currentRelease.tag,
           notes: currentRelease.body,
           pub_date: currentRelease.publishedAt || new Date().toISOString(),
-          version: currentRelease.tag,
+          version: releaseVersion || currentRelease.tag,
         };
       } else {
-        // Generic JSON fallback
         responsePayload = {
-          version: currentRelease.tag,
+          version: releaseVersion || currentRelease.tag,
           notes: currentRelease.body,
           url: platformAsset.url,
           signature: signature,

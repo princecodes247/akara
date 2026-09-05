@@ -92,6 +92,15 @@ export class GithubService {
     throw new Error(`Failed to get asset download URL. Status: ${response.status} ${response.statusText}`);
   }
 
+  async getAssetText(repoFullName: string, assetId: string, githubToken?: string): Promise<string> {
+    const downloadUrl = await this.getAssetDownloadUrl(repoFullName, assetId, githubToken);
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch asset content. Status: ${response.status} ${response.statusText}`);
+    }
+    return await response.text();
+  }
+
   async checkRepoExists(githubToken: string, repoFullName: string): Promise<boolean> {
     const response = await fetch(`https://api.github.com/repos/${repoFullName}`, {
       headers: {

@@ -120,3 +120,19 @@ export function useSyncReleaseAssets(projectId: string, releaseId: string) {
     },
   });
 }
+
+export function useAutoDetectSignatures(projectId: string, releaseId: string) {
+  return useMutation({
+    mutationFn: () =>
+      apiClient<{
+        signatures: Array<{
+          assetId?: string | number;
+          assetName: string;
+          tag: string;
+          signature: string;
+          source: string;
+        }>;
+        latestJson?: any;
+      }>(`/projects/${projectId}/releases/${releaseId}/auto-signatures`),
+  });
+}

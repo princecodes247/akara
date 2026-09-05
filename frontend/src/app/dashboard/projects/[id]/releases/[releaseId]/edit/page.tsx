@@ -8,7 +8,7 @@ import { config } from "@/lib/config";
 import { motion, AnimatePresence } from "framer-motion";
 import RichTextEditor from "@/components/ui/RichTextEditor";
 import { useProject } from "@/lib/api/hooks/useProjects";
-import { useReleases, useUpdateReleaseMapping, useSyncReleaseAssets } from "@/lib/api/hooks/useReleases";
+import { useReleases, useUpdateReleaseMapping, useSyncReleaseAssets, useAutoDetectSignatures } from "@/lib/api/hooks/useReleases";
 import { EditReleaseSkeleton } from "@/components/ui/Skeleton";
 
 interface CustomAsset {
@@ -43,14 +43,20 @@ export default function EditReleasePage() {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [autoDetectNotice, setAutoDetectNotice] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
 
   const PLATFORMS = [
-    "macOS-x64",
+    "darwin-universal",
+    "darwin-aarch64",
+    "darwin-x86_64",
+    "windows-x86_64",
+    "windows-arm64",
+    "linux-x86_64",
+    "linux-arm64",
     "macOS-arm64",
+    "macOS-x64",
     "Windows-x64",
-    "Windows-arm64",
     "Linux-x64",
-    "Linux-arm64",
     "Android",
     "iOS"
   ];
@@ -109,17 +115,18 @@ export default function EditReleasePage() {
 
   const inferPlatformTag = (filename: string) => {
     const lower = filename.toLowerCase();
-    if (lower.includes("mac") || lower.includes("darwin") || lower.endsWith(".dmg") || lower.endsWith(".pkg")) {
-      if (lower.includes("arm64") || lower.includes("aarch64") || lower.includes("m1")) return "macOS-arm64";
-      return "macOS-x64";
+    if (lower.includes("mac") || lower.includes("darwin") || lower.endsWith(".dmg") || lower.endsWith(".pkg") || lower.includes(".app.tar.gz")) {
+      if (lower.includes("universal")) return "darwin-universal";
+      if (lower.includes("arm64") || lower.includes("aarch64") || lower.includes("m1")) return "darwin-aarch64";
+      return "darwin-x86_64";
     }
-    if (lower.includes("win") || lower.endsWith(".exe") || lower.endsWith(".msi")) {
-      if (lower.includes("arm64")) return "Windows-arm64";
-      return "Windows-x64";
+    if (lower.includes("win") || lower.endsWith(".exe") || lower.endsWith(".msi") || lower.endsWith(".msi.zip") || lower.endsWith(".nsis.zip")) {
+      if (lower.includes("arm64")) return "windows-arm64";
+      return "windows-x86_64";
     }
-    if (lower.includes("linux") || lower.endsWith(".appimage") || lower.endsWith(".deb") || lower.endsWith(".rpm") || lower.endsWith(".tar.gz")) {
-      if (lower.includes("arm64") || lower.includes("aarch64")) return "Linux-arm64";
-      return "Linux-x64";
+    if (lower.includes("linux") || lower.endsWith(".appimage") || lower.endsWith(".appimage.tar.gz") || lower.endsWith(".deb") || lower.endsWith(".rpm")) {
+      if (lower.includes("arm64") || lower.includes("aarch64")) return "linux-arm64";
+      return "linux-x86_64";
     }
     if (lower.endsWith(".apk") || lower.includes("android")) return "Android";
     if (lower.endsWith(".ipa") || lower.includes("ios")) return "iOS";
@@ -159,6 +166,74 @@ export default function EditReleasePage() {
 
   const updateMappingMutation = useUpdateReleaseMapping(projectId, releaseId);
   const syncAssetsMutation = useSyncReleaseAssets(projectId, releaseId);
+  const autoDetectMutation = useAutoDetectSignatures(projectId, releaseId);
+
+  const currentArtifact = allReleases.find((r: any) => String(r.id) === releaseId);
+  const releaseHasSignatures = useMemo(() => {
+    const assets = currentArtifact?.assets || [];
+    return assets.some((a: any) => a.name === "latest.json" || a.name.endsWith(".sig"));
+  }, [currentArtifact]);
+
+  const handleAutoDetectSignatures = async () => {
+    try {
+      const res = await autoDetectMutation.mutateAsync();
+      const detected = res.signatures || [];
+      if (detected.length === 0) {
+        setAutoDetectNotice({ text: "No latest.json or .sig files found in this release's artifacts.", type: "info" });
+        return;
+      }
+
+      let count = 0;
+      const updatedAssets = selectedAssets.map(asset => {
+        const match = detected.find(
+          d => d.assetName.toLowerCase() === asset.name.toLowerCase() ||
+            (d.assetId && String(d.assetId) === String(asset.id))
+        ) || detected.find(
+          d => (asset.name.toLowerCase().includes("universal") || asset.name.toLowerCase().endsWith(".dmg")) && d.assetName.toLowerCase().includes("universal")
+        );
+
+        if (match) {
+          count++;
+          return {
+            ...asset,
+            tag: asset.tag || match.tag,
+            signature: match.signature
+          };
+        }
+        return asset;
+      });
+
+      // If any detected signed asset is not yet in selectedAssets, auto-add it!
+      for (const det of detected) {
+        const alreadyExists = updatedAssets.some(a =>
+          a.name.toLowerCase() === det.assetName.toLowerCase() ||
+          (det.assetId && String(a.id) === String(det.assetId))
+        );
+        if (!alreadyExists) {
+          count++;
+          updatedAssets.push({
+            id: det.assetId || det.assetName,
+            name: det.assetName,
+            tag: det.tag,
+            signature: det.signature,
+            sourceRepo: currentArtifact?.sourceRepo || "",
+            sourceReleaseId: releaseId
+          });
+        }
+      }
+
+      setSelectedAssets(updatedAssets);
+
+      const sourceNames = [...new Set(detected.map(d => d.source))].join(", ");
+      setAutoDetectNotice({
+        text: `Successfully linked ${count} signature(s) from ${sourceNames}!`,
+        type: "success"
+      });
+      setTimeout(() => setAutoDetectNotice(null), 6000);
+    } catch (err: any) {
+      setAutoDetectNotice({ text: "Auto-detect error: " + err.message, type: "error" });
+    }
+  };
 
   const handleSave = async (status: "draft" | "public") => {
     if (selectedAssets.length === 0) {
@@ -201,10 +276,6 @@ export default function EditReleasePage() {
     }
   };
 
-  if (loading || !currentRelease) {
-    return <EditReleaseSkeleton />;
-  }
-
   const artifacts = useMemo(() => {
     return [...allReleases].sort((a: any, b: any) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
@@ -212,6 +283,10 @@ export default function EditReleasePage() {
       return dateB - dateA;
     });
   }, [allReleases]);
+
+  if (loading || !currentRelease) {
+    return <EditReleaseSkeleton />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -327,10 +402,57 @@ export default function EditReleasePage() {
 
                 {/* Selected Assets */}
                 <div className="card-lg p-6 md:p-8">
-                  <h3 className="text-sm font-medium text-foreground mb-5 pb-3 border-b border-border flex items-center gap-2">
-                    <Box size={14} className="text-accent" /> 2. Selected assets
-                    <span className="ml-auto text-xs text-foreground-muted bg-surface px-2 py-0.5 rounded-md">{selectedAssets.length}</span>
-                  </h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-border">
+                    <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Box size={14} className="text-accent" /> 2. Selected assets
+                      <span className="text-xs text-foreground-muted bg-surface px-2 py-0.5 rounded-md">{selectedAssets.length}</span>
+                    </h3>
+
+                    <button
+                      type="button"
+                      onClick={handleAutoDetectSignatures}
+                      disabled={autoDetectMutation.isPending}
+                      className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 text-accent border-accent/30 hover:bg-accent/10 disabled:opacity-50"
+                      title="Auto-detect signatures from latest.json and .sig files"
+                    >
+                      <Sparkles size={13} className={autoDetectMutation.isPending ? "animate-spin" : ""} />
+                      {autoDetectMutation.isPending ? "Detecting signatures..." : "Auto-detect signatures"}
+                    </button>
+                  </div>
+
+                  {autoDetectNotice && (
+                    <div className={`mb-4 p-3 rounded-xl border text-xs flex items-center justify-between gap-2 ${autoDetectNotice.type === "success"
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                        : autoDetectNotice.type === "error"
+                          ? "bg-red-500/10 border-red-500/20 text-red-400"
+                          : "bg-surface border-border text-foreground-muted"
+                      }`}>
+                      <div className="flex items-center gap-2">
+                        {autoDetectNotice.type === "success" && <Check size={14} className="shrink-0" />}
+                        <span>{autoDetectNotice.text}</span>
+                      </div>
+                      <button onClick={() => setAutoDetectNotice(null)} className="text-xs opacity-70 hover:opacity-100 p-1">✕</button>
+                    </div>
+                  )}
+
+                  {releaseHasSignatures && selectedAssets.some(a => !a.signature) && !autoDetectNotice && (
+                    <div className="mb-4 p-3 rounded-xl bg-blue-500/5 border border-blue-500/15 text-xs text-blue-300 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Sparkles size={14} className="text-blue-400 shrink-0" />
+                        <span className="truncate">
+                          Tauri updater artifacts found (<span className="font-mono">latest.json</span> / <span className="font-mono">*.sig</span>).
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAutoDetectSignatures}
+                        disabled={autoDetectMutation.isPending}
+                        className="text-[11px] font-medium text-blue-400 hover:text-blue-300 underline shrink-0 cursor-pointer"
+                      >
+                        Link now
+                      </button>
+                    </div>
+                  )}
 
                   {selectedAssets.length === 0 ? (
                     <div className="border border-border border-dashed rounded-xl p-8 text-center bg-background/50">
@@ -402,8 +524,9 @@ export default function EditReleasePage() {
                                       placeholder="e.g. darwin-aarch64"
                                     />
                                     <datalist id="platform-suggestions">
-                                      <option value="darwin-x86_64" />
+                                      <option value="darwin-universal" />
                                       <option value="darwin-aarch64" />
+                                      <option value="darwin-x86_64" />
                                       <option value="windows-x86_64" />
                                       <option value="linux-x86_64" />
                                       {PLATFORMS.map(plat => (
@@ -415,13 +538,24 @@ export default function EditReleasePage() {
                               </div>
 
                               <div>
-                                <label className="block text-[10px] font-medium text-foreground-muted mb-1.5">
-                                  Cryptographic signature (OTA)
-                                </label>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <label className="block text-[10px] font-medium text-foreground-muted">
+                                    Cryptographic signature (OTA)
+                                  </label>
+                                  {asset.signature ? (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                      <Check size={10} strokeWidth={3} /> OTA Ready
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-foreground-muted/60">
+                                      Optional (required for auto-updates)
+                                    </span>
+                                  )}
+                                </div>
                                 <textarea
                                   value={asset.signature || ""}
                                   onChange={(e) => handleAssetPropChange(asset.id, "signature", e.target.value)}
-                                  placeholder="Paste .sig file contents here..."
+                                  placeholder="Auto-detected from latest.json / .sig, or paste signature here..."
                                   className="w-full bg-surface/60 border border-border rounded-lg px-3 py-2 font-mono text-[10px] text-foreground/80 outline-none focus:border-accent/50 transition-colors min-h-[50px] resize-y"
                                 />
                               </div>
@@ -474,6 +608,7 @@ export default function EditReleasePage() {
                     const isActive = activeArtifactIds.has(String(art.id));
                     const artAssets = art.assets || [];
                     const selectedCount = artAssets.filter((a: any) => selectedAssets.some(sa => String(sa.id) === String(a.id))).length;
+                    const hasUpdaterArtifacts = artAssets.some((a: any) => a.name === "latest.json" || a.name.endsWith(".sig"));
 
                     return (
                       <div key={art.id} className="border border-border bg-background rounded-xl overflow-hidden">
@@ -487,6 +622,11 @@ export default function EditReleasePage() {
                               {selectedCount > 0 && (
                                 <span className="px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] border border-accent/15">
                                   {selectedCount} selected
+                                </span>
+                              )}
+                              {hasUpdaterArtifacts && (
+                                <span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[9px] border border-blue-500/20 font-mono">
+                                  OTA sigs
                                 </span>
                               )}
                             </div>
@@ -513,12 +653,12 @@ export default function EditReleasePage() {
                                   <div className="space-y-1.5 mt-3">
                                     {artAssets.map((asset: any) => {
                                       const isSelected = selectedAssets.some(a => String(a.id) === String(asset.id));
+                                      const isSigOrManifest = asset.name === "latest.json" || asset.name.endsWith(".sig");
                                       return (
                                         <label
                                           key={asset.id}
-                                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                            isSelected ? "bg-accent/5 border-accent/20" : "bg-background border-border hover:border-[#2a2a2a]"
-                                          }`}
+                                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? "bg-accent/5 border-accent/20" : "bg-background border-border hover:border-[#2a2a2a]"
+                                            }`}
                                         >
                                           <input
                                             type="checkbox"
@@ -526,13 +666,17 @@ export default function EditReleasePage() {
                                             checked={isSelected}
                                             onChange={() => handleAssetToggle(asset, art.sourceRepo, art.id)}
                                           />
-                                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                            isSelected ? "bg-accent border-accent text-background" : "border-border bg-surface/50"
-                                          }`}>
+                                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-accent border-accent text-background" : "border-border bg-surface/50"
+                                            }`}>
                                             {isSelected && <Check size={11} strokeWidth={3} />}
                                           </div>
-                                          <div className="font-mono text-xs text-foreground/80 truncate flex-1">
-                                            {asset.name}
+                                          <div className="font-mono text-xs text-foreground/80 truncate flex-1 flex items-center gap-2">
+                                            <span>{asset.name}</span>
+                                            {isSigOrManifest && (
+                                              <span className="px-1 py-0.2 rounded bg-blue-500/10 text-blue-400 text-[8px] border border-blue-500/20 font-sans">
+                                                OTA metadata
+                                              </span>
+                                            )}
                                           </div>
                                           {asset.size && (
                                             <div className="text-[9px] font-mono text-foreground-muted shrink-0">

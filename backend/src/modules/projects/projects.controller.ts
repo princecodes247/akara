@@ -117,6 +117,21 @@ export class ProjectsController {
     }
   }
 
+  async detectReleaseSignatures(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id, releaseId } = req.params as { id: string; releaseId: string };
+      const userId = req.user?.userId;
+      const githubToken = req.user?.githubToken;
+
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const result = await projectsService.detectReleaseSignatures(id, releaseId, userId, githubToken);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async createProject(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { name, sourceRepos, targetRepo } = req.body;

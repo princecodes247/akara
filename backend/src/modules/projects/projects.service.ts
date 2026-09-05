@@ -94,11 +94,13 @@ export class ProjectsService {
     // Rewrite asset URLs based on targetRepo or proxy
     const rewrittenAssets = assetsList.map((asset: any) => {
       const downloadCount = s.downloadCounts?.[asset.id] || 0;
+      const signature = asset.signature || "";
       if (project.targetRepo) {
         return {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
+          signature,
           url: `https://github.com/${project.targetRepo}/releases/download/${r.tag || r.tag_name}/${encodeURIComponent(asset.name)}`,
           downloadCount
         };
@@ -110,6 +112,7 @@ export class ProjectsService {
           id: asset.id,
           name: asset.name,
           tag: asset.tag || "",
+          signature,
           url: `${config.BASE_URL}/v1/public/projects/${projectId}/releases/${publicReleaseId}/assets/${asset.id}?repo=${encodeURIComponent(assetSourceRepo)}`,
           downloadCount
         };
@@ -133,7 +136,7 @@ export class ProjectsService {
       await cache.del(`project:public-data:${slug}`);
       await cache.del(`project:current-release:${slug}`);
     }
-    
+
     // Evict internal API cache for this project's releases
     const project = await db.collections.projects.findOne({ _id: new ObjectId(projectId) });
     if (project && project.userId) {
@@ -538,6 +541,165 @@ export class ProjectsService {
     return updatedRelease;
   }
 
+  async detectReleaseSignatures(projectId: string, sourceReleaseId: string, userId?: string, githubToken?: string) {
+    const project = await this.getProjectById(projectId, userId);
+    let token: string | undefined = githubToken;
+    if (!token && project.userId) {
+      const user = await db.collections.users.findOne({ _id: new ObjectId(project.userId.toString()) });
+      if (user) token = user.githubToken;
+    }
+
+    const staged = await db.collections.stagedReleases.findOne({
+      projectId: new ObjectId(projectId),
+      sourceReleaseId
+    });
+
+    // Always fetch fresh releases from GitHub to get newly uploaded artifacts (latest.json, .sig files)
+    let releaseData: any = null;
+    let assets: any[] = [];
+    let sourceRepo = project.sourceRepos?.[0] ?? "";
+
+    try {
+      const allReleases = await this.getProjectReleases(projectId, token || "", userId);
+      const freshRelease = allReleases.find(
+        (r: any) => String(r.id) === String(sourceReleaseId) || String(r.tag_name) === String(sourceReleaseId) || String(r.tag) === String(sourceReleaseId)
+      );
+      if (freshRelease) {
+        releaseData = freshRelease;
+        assets = freshRelease.assets || [];
+        sourceRepo = freshRelease.sourceRepo || sourceRepo;
+
+        if (staged) {
+          // Keep staged.releaseData fresh with newly fetched assets
+          await db.collections.stagedReleases.updateOne(
+            { _id: staged._id },
+            { $set: { releaseData: freshRelease } }
+          );
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch fresh releases from GitHub, falling back to staged:", e);
+    }
+
+    if (!releaseData) {
+      releaseData = staged?.releaseData;
+      assets = releaseData?.assets || [];
+      sourceRepo = releaseData?.sourceRepo || sourceRepo;
+    }
+
+    const detectedMap: Record<string, {
+      assetId?: string | number;
+      assetName: string;
+      tag: string;
+      signature: string;
+      source: string;
+    }> = {};
+
+    let latestJsonManifest: any = null;
+
+    const fetchContent = async (asset: any): Promise<string | null> => {
+      // 1. Try direct URL first
+      if (asset.url) {
+        try {
+          const res = await fetch(asset.url);
+          if (res.ok) return await res.text();
+        } catch (e) {
+          // fallback to GitHub API
+        }
+      }
+
+      // 2. Try authenticated GitHub API
+      if (token && sourceRepo && asset.id) {
+        try {
+          return await githubService.getAssetText(sourceRepo, String(asset.id), token);
+        } catch (e) {
+          console.warn(`Could not fetch content for asset ${asset.name}:`, e);
+        }
+      }
+      return null;
+    };
+
+    // 1. Process latest.json if present
+    const latestJsonAsset = assets.find((a: any) => a.name === "latest.json");
+    if (latestJsonAsset) {
+      const content = await fetchContent(latestJsonAsset);
+      if (content) {
+        try {
+          const parsed = JSON.parse(content);
+          latestJsonManifest = parsed;
+          if (parsed.platforms && typeof parsed.platforms === "object") {
+            const platformEntries = Object.entries(parsed.platforms) as [string, { signature?: string; url?: string }][];
+
+            const darwinAarch64 = parsed.platforms["darwin-aarch64"];
+            const darwinX86_64 = parsed.platforms["darwin-x86_64"];
+            const isUniversalMac = darwinAarch64 && darwinX86_64 && darwinAarch64.url === darwinX86_64.url;
+
+            for (const [platformKey, platData] of platformEntries) {
+              if (!platData || !platData.signature || !platData.url) continue;
+
+              const rawUrl = platData.url;
+              const fileName = decodeURIComponent(rawUrl.substring(rawUrl.lastIndexOf("/") + 1));
+              const matchingAsset = assets.find((a: any) => a.name === fileName);
+
+              let suggestedTag = platformKey;
+              if (isUniversalMac && (platformKey === "darwin-aarch64" || platformKey === "darwin-x86_64") && fileName.includes("universal")) {
+                suggestedTag = "darwin-universal";
+              }
+
+              detectedMap[fileName] = {
+                assetId: matchingAsset?.id,
+                assetName: fileName,
+                tag: suggestedTag,
+                signature: platData.signature.trim(),
+                source: "latest.json"
+              };
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to parse latest.json:", e);
+        }
+      }
+    }
+
+    // 2. Process *.sig files (e.g. Qlip_universal.app.tar.gz.sig)
+    const sigAssets = assets.filter((a: any) => a.name.endsWith(".sig"));
+    for (const sigAsset of sigAssets) {
+      const bundleName = sigAsset.name.slice(0, -4);
+      const matchingAsset = assets.find((a: any) => a.name === bundleName);
+
+      if (!detectedMap[bundleName]?.signature) {
+        const sigContent = await fetchContent(sigAsset);
+        if (sigContent) {
+          const trimmedSig = sigContent.trim();
+          let inferredTag = "";
+          const lower = bundleName.toLowerCase();
+          if (lower.includes("universal")) {
+            inferredTag = "darwin-universal";
+          } else if (lower.includes("darwin") || lower.includes("mac") || lower.includes(".app.tar.gz")) {
+            inferredTag = lower.includes("arm64") || lower.includes("aarch64") ? "darwin-aarch64" : "darwin-x86_64";
+          } else if (lower.includes("win") || lower.endsWith(".msi.zip") || lower.endsWith(".nsis.zip")) {
+            inferredTag = lower.includes("arm64") ? "windows-arm64" : "windows-x86_64";
+          } else if (lower.includes("linux") || lower.endsWith(".appimage.tar.gz")) {
+            inferredTag = lower.includes("arm64") || lower.includes("aarch64") ? "linux-arm64" : "linux-x86_64";
+          }
+
+          detectedMap[bundleName] = {
+            assetId: matchingAsset?.id,
+            assetName: bundleName,
+            tag: inferredTag,
+            signature: trimmedSig,
+            source: sigAsset.name
+          };
+        }
+      }
+    }
+
+    return {
+      signatures: Object.values(detectedMap),
+      latestJson: latestJsonManifest
+    };
+  }
+
   async createProject(data: { name: string; sourceRepos: string[]; targetRepo?: string | null; userId?: string }) {
     if (!data.name || !data.sourceRepos || data.sourceRepos.length === 0) {
       throw new Error("Missing required fields");
@@ -706,7 +868,7 @@ export class ProjectsService {
 
     const inserted = await db.collections.storeReleases.insertOne(record as any);
     await this.evictProjectCache(project._id.toString(), project.slug);
-    return { id: inserted.insertedId.toString(), ...record };
+    return { id: inserted._id.toString(), ...record };
   }
 
   async getStoreReleases(projectIdOrSlug: string) {
