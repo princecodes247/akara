@@ -579,6 +579,111 @@ export class PublicController {
       next(error);
     }
   }
+
+  async getDesktopOtaUpdate(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, currentSequence } = req.params as { id: string; currentSequence: string };
+      const clientSeq = parseInt(currentSequence, 10) || 0;
+      const binaryVersion = (req.query.binary_version as string) || "";
+      const platform = (req.query.platform as string) || "";
+      const channel = (req.query.channel as string) || "production";
+
+      const currentRelease = await getCachedCurrentRelease(id);
+      if (!currentRelease) {
+        return res.status(204).send();
+      }
+
+      const assets = currentRelease.assets || [];
+
+      // Look for frontend OTA asset
+      const otaAsset = assets.find((a: any) => {
+        const name = (a.name || "").toLowerCase();
+        return (
+          name === "frontend.tar.gz" ||
+          name === "bundle.tar.gz" ||
+          name === "dist.tar.gz" ||
+          name.endsWith("-frontend.tar.gz") ||
+          name.endsWith("-ota.tar.gz") ||
+          (a.tag === "ota" && (name.endsWith(".tar.gz") || name.endsWith(".zip")))
+        );
+      });
+
+      if (!otaAsset) {
+        return res.status(204).send();
+      }
+
+      // Calculate release sequence
+      let releaseSeq = typeof currentRelease.sequence === "number" ? currentRelease.sequence : 0;
+      if (!releaseSeq) {
+        const match = (currentRelease.tag || "").match(/ota[.-](\d+)/i);
+        if (match) {
+          releaseSeq = parseInt(match[1], 10);
+        } else {
+          const pubDate = new Date(currentRelease.publishedAt || currentRelease.createdAt || Date.now());
+          releaseSeq = Math.floor(pubDate.getTime() / 1000);
+        }
+      }
+
+      if (releaseSeq <= clientSeq) {
+        return res.status(204).send();
+      }
+
+      // Check min_binary_version
+      const releaseVersion = semver.coerce(currentRelease.tag)?.version || "0.0.0";
+      const minBinaryVersion = (currentRelease.minBinaryVersion as string) || releaseVersion;
+      if (binaryVersion && minBinaryVersion) {
+        const clientBin = semver.coerce(binaryVersion)?.version;
+        const minBin = semver.coerce(minBinaryVersion)?.version;
+        if (clientBin && minBin && semver.lt(clientBin, minBin)) {
+          return res.status(204).send();
+        }
+      }
+
+      // Resolve signature
+      let signature = otaAsset.signature?.trim() || null;
+      if (!signature) {
+        const sigAsset = assets.find(
+          (a: any) =>
+            a.name === `${otaAsset.name}.sig` ||
+            (a.name.endsWith(".sig") && a.name.includes("frontend"))
+        );
+        if (sigAsset && sigAsset.url) {
+          try {
+            const sigRes = await fetch(sigAsset.url);
+            if (sigRes.ok) {
+              signature = (await sigRes.text()).trim();
+            }
+          } catch (e) {
+            console.error("Error fetching OTA signature file:", e);
+          }
+        }
+      }
+
+      if (!signature) {
+        console.warn(`No signature found for OTA asset ${otaAsset.name}. Refusing to serve unsigned update.`);
+        return res.status(204).send();
+      }
+
+      const responsePayload = {
+        version: currentRelease.tag || `${releaseVersion}-ota.${releaseSeq}`,
+        sequence: releaseSeq,
+        min_binary_version: minBinaryVersion,
+        url: otaAsset.url,
+        signature: signature,
+        notes: currentRelease.body || currentRelease.title || "OTA frontend update",
+        pub_date: currentRelease.publishedAt || new Date().toISOString(),
+        mandatory: false,
+        bundle_size: otaAsset.size || undefined,
+      };
+
+      return res.json(responsePayload);
+    } catch (error: any) {
+      if (error.message === "Project not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 export const publicController = new PublicController();

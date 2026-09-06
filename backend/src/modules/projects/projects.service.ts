@@ -673,7 +673,9 @@ export class ProjectsService {
           const trimmedSig = sigContent.trim();
           let inferredTag = "";
           const lower = bundleName.toLowerCase();
-          if (lower.includes("universal")) {
+          if (lower.includes("frontend") || lower.includes("ota")) {
+            inferredTag = "ota";
+          } else if (lower.includes("universal")) {
             inferredTag = "darwin-universal";
           } else if (lower.includes("darwin") || lower.includes("mac") || lower.includes(".app.tar.gz")) {
             inferredTag = lower.includes("arm64") || lower.includes("aarch64") ? "darwin-aarch64" : "darwin-x86_64";
