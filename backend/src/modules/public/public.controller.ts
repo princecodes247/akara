@@ -557,6 +557,15 @@ export class PublicController {
         return res.status(400).json({ error: "Missing required 'version' parameter." });
       }
 
+      const project = await projectsService.getProjectById(id);
+      if (project.apiKey) {
+        const auth = req.headers.authorization;
+        const token = auth && auth.startsWith("Bearer ") ? auth.slice(7).trim() : null;
+        if (!token || token !== project.apiKey) {
+          return res.status(401).json({ error: "Unauthorized: Invalid or missing API key." });
+        }
+      }
+
       const release = await projectsService.createStoreRelease(id, body);
       res.status(201).json(release);
     } catch (error: any) {

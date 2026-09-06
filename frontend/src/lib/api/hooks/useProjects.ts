@@ -58,3 +58,16 @@ export function useDeleteProject() {
     },
   });
 }
+
+export function useRegenerateApiKey(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiClient<{ apiKey: string }>(`/projects/${id}/api-key`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(id) });
+    },
+  });
+}

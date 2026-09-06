@@ -20,6 +20,7 @@ const projectSchema = createSchema("projects", {
   seoTitle: string().optional(),
   seoDescription: string().optional(),
   isPublic: boolean().default(true),
+  apiKey: string().optional(),
 });
 
 const releaseMappingSchema = createSchema("releaseMappings", {

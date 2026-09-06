@@ -17,4 +17,5 @@ projectsRouter.post("/:id/releases/:releaseId/sync", projectsController.syncRele
 projectsRouter.get("/:id/releases/:releaseId/auto-signatures", projectsController.detectReleaseSignatures);
 projectsRouter.get("/:id/store-releases", projectsController.getStoreReleases);
 projectsRouter.patch("/:id/store-releases/:releaseId", projectsController.updateStoreReleaseTrack);
+projectsRouter.post("/:id/api-key", projectsController.regenerateApiKey);
 projectsRouter.post("/", projectsController.createProject);

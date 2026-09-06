@@ -249,6 +249,17 @@ export class ProjectsController {
       next(error);
     }
   }
+
+  async regenerateApiKey(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params as { id: string };
+      const userId = req.user?.userId;
+      const result = await projectsService.regenerateApiKey(id, userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const projectsController = new ProjectsController();

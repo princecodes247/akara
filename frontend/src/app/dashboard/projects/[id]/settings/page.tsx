@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, X, Save, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, X, Save, Trash2, Loader2, Key, Copy, Check, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { RepoSelector } from "@/components/RepoSelector";
 import { config } from "@/lib/config";
-import { useProject, useUpdateProject, useDeleteProject } from "@/lib/api/hooks/useProjects";
+import { useProject, useUpdateProject, useDeleteProject, useRegenerateApiKey } from "@/lib/api/hooks/useProjects";
 import { SettingsSkeleton } from "@/components/ui/Skeleton";
 
 export default function ProjectSettingsPage() {
@@ -26,9 +26,13 @@ export default function ProjectSettingsPage() {
   const { data: project, isLoading: loading, error: fetchError } = useProject(id);
   const updateProjectMutation = useUpdateProject(id);
   const deleteProjectMutation = useDeleteProject();
+  const regenerateApiKeyMutation = useRegenerateApiKey(id);
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [regeneratingKey, setRegeneratingKey] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [error, setError] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
@@ -273,6 +277,99 @@ export default function ProjectSettingsPage() {
             </button>
           </div>
         </form>
+
+        {/* API Key & CI/CD */}
+        <div className="card-surface p-6 md:p-8 space-y-6">
+          <div className="border-b border-border pb-5">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Key size={20} className="text-primary" />
+              Project API Key & CI/CD
+            </h2>
+            <p className="text-foreground-muted text-sm mt-1">
+              Use this secret key to publish releases and update tracks from GitHub Actions or automated build pipelines.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                API Secret Key
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center bg-background border border-border rounded-lg px-3.5 py-2.5 font-mono text-sm">
+                  <span className="flex-1 select-all overflow-hidden text-ellipsis">
+                    {showKey ? (project?.apiKey || "No API key configured") : (project?.apiKey ? `${project.apiKey.slice(0, 12)}••••••••••••••••••••••••••••••••` : "••••••••••••••••")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="text-foreground-muted hover:text-foreground ml-2 transition-colors p-1"
+                    title={showKey ? "Hide key" : "Show key"}
+                  >
+                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (project?.apiKey) {
+                      navigator.clipboard.writeText(project.apiKey);
+                      setCopiedKey(true);
+                      setTimeout(() => setCopiedKey(false), 2000);
+                    }
+                  }}
+                  className="btn-secondary flex items-center gap-2 px-4 py-2.5"
+                  title="Copy to clipboard"
+                >
+                  {copiedKey ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                  <span>{copiedKey ? "Copied" : "Copy"}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={regeneratingKey}
+                  onClick={async () => {
+                    if (confirm("Are you sure you want to regenerate this project's API key? Existing CI/CD workflows using the old key will fail.")) {
+                      setRegeneratingKey(true);
+                      try {
+                        await regenerateApiKeyMutation.mutateAsync();
+                        alert("API key regenerated successfully!");
+                      } catch (err: any) {
+                        alert(err.message || "Failed to regenerate API key");
+                      } finally {
+                        setRegeneratingKey(false);
+                      }
+                    }
+                  }}
+                  className="btn-secondary text-amber-400 hover:text-amber-300 flex items-center gap-2 px-4 py-2.5"
+                  title="Regenerate key"
+                >
+                  <RefreshCw size={16} className={regeneratingKey ? "animate-spin" : ""} />
+                  <span>Regenerate</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-background/60 border border-border/80 rounded-lg p-4 space-y-2">
+              <span className="text-xs font-medium text-foreground-muted uppercase tracking-wider block">
+                GitHub Actions Usage Example
+              </span>
+              <pre className="text-xs font-mono text-foreground/90 overflow-x-auto p-2 bg-background rounded border border-border/50">
+{`- name: Register Release with Akara
+  run: |
+    curl -X POST "https://api.akara.prnce.xyz/v1/public/projects/${slug || id}/releases" \\
+      -H "Authorization: Bearer \${{ secrets.AKARA_API_KEY }}" \\
+      -H "Content-Type: application/json" \\
+      -d '{
+        "platform": "android",
+        "packageName": "com.madebytrident.qlip",
+        "version": "\${{ github.ref_name }}",
+        "track": "internal",
+        "status": "published"
+      }'`}
+              </pre>
+            </div>
+          </div>
+        </div>
 
         {/* Danger Zone */}
         <div className="border border-red-500/15 bg-red-500/3 p-6 md:p-8 space-y-5 rounded-xl">

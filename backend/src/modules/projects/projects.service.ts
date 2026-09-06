@@ -5,6 +5,8 @@ import config from "../../lib/config";
 import { assetTransferQueue } from "../queue/queue.service";
 import { cache, cached } from "../../lib/cache";
 
+import crypto from "crypto";
+
 export class ProjectsService {
   async getAllProjects(userId?: string) {
     const query = userId ? { userId: new ObjectId(userId) } : {};
@@ -26,7 +28,25 @@ export class ProjectsService {
     if (!project) {
       throw new Error("Project not found");
     }
+
+    if (!project.apiKey) {
+      const generatedKey = `akara_sec_${crypto.randomBytes(24).toString("hex")}`;
+      await db.collections.projects.updateOne({ _id: project._id }, { $set: { apiKey: generatedKey } });
+      project.apiKey = generatedKey;
+    }
+
     return project;
+  }
+
+  async regenerateApiKey(projectIdOrSlug: string, userId?: string) {
+    const project = await this.getProjectById(projectIdOrSlug, userId);
+    const newApiKey = `akara_sec_${crypto.randomBytes(24).toString("hex")}`;
+    await db.collections.projects.updateOne(
+      { _id: project._id },
+      { $set: { apiKey: newApiKey } }
+    );
+    await this.evictProjectCache(project._id.toString(), project.slug);
+    return { apiKey: newApiKey };
   }
 
   async getProjectReleases(id: string, githubToken: string, userId?: string) {
